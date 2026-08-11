@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fa3-check — FA(3) invoice validator</title>
+  <meta name="description" content="Walidator faktury ustrukturyzowanej FA(3) / KSeF — reguły z cytatem ze źródła MF.">
+  <style>
+    :root {
+      --tlo: #f7f4ef;
+      --atrament: #1c1a16;
+      --akcent: #0b5f4a;
+      --ramka: #d4cdc2;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--atrament);
+      background:
+        radial-gradient(ellipse at 12% 0%, #ebe4d8 0%, transparent 55%),
+        linear-gradient(180deg, #faf7f2, var(--tlo));
+      line-height: 1.5;
+    }
+    header, main, footer { max-width: 52rem; margin: 0 auto; padding: 1.25rem 1.5rem; }
+    header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--ramka); max-width: none; padding: 1rem 1.5rem; }
+    header .inner { max-width: 52rem; margin: 0 auto; width: 100%; display: flex; justify-content: space-between; }
+    .marka { color: var(--akcent); font-weight: 700; font-size: 1.25rem; text-decoration: none; }
+    a { color: var(--akcent); }
+    h1 { font-size: 1.85rem; margin: 1.5rem 0 0.5rem; }
+    .lead { color: #4a453c; font-size: 1.05rem; }
+    .note {
+      background: #e8f2ee;
+      border-left: 3px solid var(--akcent);
+      padding: 0.85rem 1rem;
+      margin: 1.25rem 0;
+    }
+    .shots figure { margin: 2rem 0; }
+    .shots img {
+      width: 100%;
+      border: 1px solid var(--ramka);
+      background: #fffdf9;
+      display: block;
+    }
+    figcaption { color: #5a554c; font-size: 0.95rem; margin-top: 0.5rem; }
+    code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; }
+    pre {
+      background: #1c1a16;
+      color: #f7f4ef;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 2px;
+    }
+    footer { border-top: 1px solid var(--ramka); color: #5a554c; font-size: 0.95rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <a class="marka" href="./">fa3-check</a>
+      <nav>
+        <a href="https://github.com/Iakirmon/fa3-check">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <h1>FA(3) validator with auditable sources</h1>
+    <p class="lead">
+      Paste a structured invoice XML. Get findings with a quote from the official MF brochure —
+      not a raw parser message.
+    </p>
+    <div class="note">
+      <strong>GitHub Pages is static.</strong> The live validator (FastAPI) runs on your machine:
+      <code>python -m fa3check.web</code> → <code>http://127.0.0.1:8000</code>.
+      Below are screenshots from that UI.
+    </div>
+
+    <section class="shots">
+      <figure>
+        <img src="assets/01-strona.png" alt="fa3-check home: paste XML and validate">
+        <figcaption>Home — paste FA(3) XML, privacy notice next to the field.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/02-wynik.png" alt="Validation result showing SEM-001 with source quote">
+        <figcaption>Result — SEM-001 expanded: what / why / how to fix / source quote.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/03-reguly.png" alt="Rules catalog with brochure quotes">
+        <figcaption>Rules &amp; translations — every entry has a source you can verify without reading code.</figcaption>
+      </figure>
+    </section>
+
+    <h2>Run locally</h2>
+    <pre><code>git clone https://github.com/Iakirmon/fa3-check.git
+cd fa3-check
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/python -m fa3check.web</code></pre>
+
+    <p>
+      Sample invoices: <code>korpus/zloty/fa3-przyklad-01.xml</code> … <code>-26.xml</code>.
+      Full story: <a href="https://github.com/Iakirmon/fa3-check#readme">README</a>
+      (English + Polish).
+    </p>
+
+    <h2>Po polsku</h2>
+    <p class="lead">
+      Walidator faktury FA(3) / KSeF. Wklejasz XML, dostajesz zastrzeżenia z cytatem ze źródła MF.
+    </p>
+    <div class="note">
+      Ta strona na GitHub Pages jest <strong>tylko podglądem</strong> (screenshoty).
+      Działający walidator odpalasz lokalnie — nic nie wychodzi na zewnątrz.
+    </div>
+  </main>
+  <footer>
+    <p>MIT · <a href="https://github.com/Iakirmon/fa3-check">Iakirmon/fa3-check</a></p>
+  </footer>
+</body>
+</html>
