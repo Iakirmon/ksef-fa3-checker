@@ -47,8 +47,12 @@ def brak_instrukcji_przetwarzania(f: Faktura) -> Iterator[Zastrzezenie]:
                 "(fragment „<?…?>” poza prologiem) — niedozwolona w FA(3)."
             ),
             dlaczego=(
-                "KSeF odrzuci fakturę — processing instructions są niedozwolone w fakturze FA(3)."
+                "KSeF odrzuci fakturę — instrukcje przetwarzania XML są niedozwolone "
+                "w fakturze FA(3)."
             ),
-            jak_naprawic=("Usuń wszystkie instrukcje przetwarzania (np. xml-stylesheet) z pliku."),
+            jak_naprawic=(
+                "Usuń z pliku wszystkie instrukcje przetwarzania "
+                "(fragmenty „<?…?>” poza prologiem, np. xml-stylesheet)."
+            ),
             zrodlo=ZRODLO,
         )

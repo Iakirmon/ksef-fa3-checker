@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "fa3check"
 version = "0.1.0"
 description = "Walidator faktury ustrukturyzowanej FA(3) z warstwą webową"
-readme = "AGENTS.md"
+readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 authors = [{ name = "Iakirmon" }]

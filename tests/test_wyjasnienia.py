@@ -5,9 +5,9 @@ from __future__ import annotations
 import re
 
 import pytest
-from tests.helpers import faktura_z_fixture
 
 from fa3check.rejestr import odkryj, reguly, reset_do_testow
+from tests.helpers import faktura_z_fixture
 
 ZWROTY_ZAKAZANE = [
     "nieprawidłowa wartość",
@@ -16,11 +16,28 @@ ZWROTY_ZAKAZANE = [
     "niezgodne ze specyfikacją",
     "popraw wartość",
     "sprawdź poprawność",
+    "sprawdź dane",
+    "nieprawidłowy format",
+    "invalid value",
+    "validation error",
     "atomic type",
     "facet",
+    "complex type",
+    "simple type",
+    "schema validation",
+    "processing instructions",  # żargon — mów „instrukcje przetwarzania”
 ]
 
-ZARGON = ["atomic type", "facet", "XSD", "schema validation"]
+ZARGON = [
+    "atomic type",
+    "facet",
+    "XSD",
+    "schema validation",
+    "complex type",
+    "simple type",
+    "libxml",
+    "lxml",
+]
 
 
 def setup_function() -> None:
