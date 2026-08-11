@@ -35,14 +35,31 @@ def _moduly_importowane(drzewo: ast.AST) -> set[str]:
     return wynik
 
 
-def test_lxml_tylko_w_safexml() -> None:
-    naruszonia: list[str] = []
+def test_lxml_parser_tylko_w_safexml() -> None:
+    """Parsowanie niezaufanego XML wyłącznie w safexml; schema/struktura wolno importować lxml."""
+    dozwolone_import = frozenset({"safexml.py", "schema.py", "struktura.py"})
+    # schema/struktura ładują lokalny XSD przez etree.parse — to nie jest wejście użytkownika
+    dozwolone_parse = frozenset({"safexml.py", "schema.py", "struktura.py"})
+    zakazane_parsowanie = {"fromstring", "XMLParser"}
+    naruszonia_import: list[str] = []
+    naruszonia_parser: list[str] = []
     for plik in _pliki_py(SRC):
-        drzewo = ast.parse(plik.read_text(encoding="utf-8"), filename=str(plik))
+        tekst = plik.read_text(encoding="utf-8")
+        drzewo = ast.parse(tekst, filename=str(plik))
         mods = _moduly_importowane(drzewo)
-        if "lxml" in mods and plik.name != "safexml.py":
-            naruszonia.append(str(plik.relative_to(ROOT)))
-    assert naruszonia == [], f"lxml poza safexml.py: {naruszonia}"
+        if "lxml" in mods and plik.name not in dozwolone_import:
+            naruszonia_import.append(str(plik.relative_to(ROOT)))
+        if plik.name in dozwolone_parse:
+            continue
+        for node in ast.walk(drzewo):
+            if isinstance(node, ast.Attribute) and node.attr in (*zakazane_parsowanie, "parse"):
+                naruszonia_parser.append(f"{plik.relative_to(ROOT)}:{node.lineno}:{node.attr}")
+    assert naruszonia_import == [], f"lxml poza dozwolonymi: {naruszonia_import}"
+    assert naruszonia_parser == [], f"parsowanie poza safexml: {naruszonia_parser}"
+
+
+def test_lxml_tylko_w_safexml() -> None:
+    test_lxml_parser_tylko_w_safexml()
 
 
 def test_wpisy_nie_importuja_warstwy_orkiestracji() -> None:
