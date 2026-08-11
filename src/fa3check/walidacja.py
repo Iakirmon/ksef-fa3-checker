@@ -9,8 +9,8 @@ from fa3check.faktura import NS, Faktura
 from fa3check.rejestr import reguly
 from fa3check.safexml import Dokument, sparsuj
 from fa3check.schema import sprawdz
+from fa3check.tlumaczenia import na_zastrzezenie
 from fa3check.typy import (
-    BladSchematu,
     Poziom,
     Waga,
     Wynik,
@@ -82,36 +82,17 @@ def _zastrzezenie_korzenia(dok: Dokument) -> Zastrzezenie:
     )
 
 
-def _blad_na_zastrzezenie(blad: BladSchematu) -> Zastrzezenie:
-    """Tymczasowe mapowanie do etapu 3 (pełny słownik tłumaczeń)."""
-    pole = blad.element or "nieznane pole"
-    return Zastrzezenie(
-        wpis="XSD-zapasowe",
-        waga=Waga.BLAD,
-        poziom=Poziom.SCHEMA,
-        xpath=blad.xpath or "/*",
-        linia=blad.linia or None,
-        co=(
-            f"Pole `{pole}` w linii {blad.linia} nie spełnia wymogów struktury FA(3)"
-            + (f" (typ {blad.typ_xsd})." if blad.typ_xsd else ".")
-        ),
-        dlaczego=(
-            "Naruszenie schematu FA(3) oznacza, że KSeF odrzuci plik na etapie "
-            "sprawdzenia zgodności ze wzorem."
-        ),
-        jak_naprawic=(
-            f"Popraw wartość lub strukturę pola `{pole}` zgodnie z broszurą FA(3) "
-            "i schematem wzoru."
-        ),
-        zrodlo=Zrodlo(
-            dokument="Schemat FA(3) v1-0E",
-            wersja="1-0E",
-            sekcja=blad.typ_lxml or "schema",
-            cytat="Zgodność ze schematem FA(3) jest warunkiem przyjęcia faktury.",
-            url="https://crd.gov.pl/wzor/2025/06/25/13775/",
-        ),
-        diagnostyka=blad.komunikat,
-    )
+def _rodzic_bledu(dok: Dokument, xpath: str) -> object | None:
+    if not xpath:
+        return None
+    try:
+        wezly = dok.korzen.getroottree().xpath(xpath)
+    except Exception:
+        return None
+    if not isinstance(wezly, list) or not wezly:
+        return None
+    rodzic = wezly[0].getparent()
+    return rodzic if rodzic is not None else None
 
 
 def _uruchom_reguly(
@@ -168,7 +149,8 @@ def zwaliduj(dane: bytes) -> Wynik:
     bledy = sprawdz(dok)
     schema_ok = not bledy
     for blad in bledy:
-        zastrzezenia.append(_blad_na_zastrzezenie(blad))
+        rodzic = _rodzic_bledu(dok, blad.xpath)
+        zastrzezenia.append(na_zastrzezenie(blad, rodzic=rodzic))
 
     # Semantyka i arytmetyka zawsze — także przy błędach schematu.
     zastrzezenia.extend(_uruchom_reguly(faktura, {Poziom.SEMANTYCZNA, Poziom.ARYTMETYCZNA}))

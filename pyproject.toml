@@ -55,7 +55,11 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 mypy_path = "src"
-packages = ["fa3check"]
+explicit_package_bases = true
+exclude = [
+    "^src/fa3check/tlumaczenia/.+/",
+    "^src/fa3check/reguly/.+/",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

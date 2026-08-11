@@ -25,6 +25,7 @@ FunkcjaReguly = Callable[[Faktura], Iterator[Zastrzezenie]]
 _REGULY: dict[str, Regula] = {}
 _TLUMACZENIA: dict[str, Tlumaczenie] = {}
 _ODKRYTE = False
+_LADOWANY_KATALOG: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +47,7 @@ class Tlumaczenie:
     zrodlo: Zrodlo
     klasa: type
     katalog: Path
+    klucze: tuple[KluczBledu, ...] = ()
 
 
 def _wymagaj_zrodla(zrodlo: Zrodlo | None, identyfikator: str) -> Zrodlo:
@@ -57,7 +59,20 @@ def _wymagaj_zrodla(zrodlo: Zrodlo | None, identyfikator: str) -> Zrodlo:
 
 
 def _katalog_z_funkcji(obj: Any) -> Path:
-    return Path(inspect.getfile(obj)).resolve().parent
+    if _LADOWANY_KATALOG is not None:
+        return _LADOWANY_KATALOG
+    try:
+        return Path(inspect.getfile(obj)).resolve().parent
+    except TypeError:
+        import sys
+
+        modul = sys.modules.get(getattr(obj, "__module__", ""), None)
+        plik = getattr(modul, "__file__", None) if modul is not None else None
+        if plik:
+            return Path(plik).resolve().parent
+        raise WpisBezZrodla(
+            f"Nie można ustalić katalogu wpisu dla {obj!r}"
+        ) from None
 
 
 def rejestruj(
@@ -95,8 +110,9 @@ def rejestruj(
 def tlumacz(
     *,
     id: str,
-    klucz: KluczBledu,
     zrodlo: Zrodlo,
+    klucz: KluczBledu | None = None,
+    klucze: tuple[KluczBledu, ...] | None = None,
 ) -> Callable[[type], type]:
     def dekorator(klasa: type) -> type:
         if id in _REGULY or id in _TLUMACZENIA:
@@ -105,9 +121,14 @@ def tlumacz(
         katalog = _katalog_z_funkcji(klasa)
         if not (katalog / "fixtures" / "wywoluje.xml").is_file():
             raise WpisBezZrodla(f"{id}: brak fixtures/wywoluje.xml")
+        lista = klucze if klucze is not None else (() if klucz is None else (klucz,))
+        if id != "XSD-zapasowe" and not lista:
+            raise WpisBezZrodla(f"{id}: brak klucza dopasowania")
+        glowny = lista[0] if lista else KluczBledu()
         _TLUMACZENIA[id] = Tlumaczenie(
             id=id,
-            klucz=klucz,
+            klucz=glowny,
+            klucze=lista,
             zrodlo=z,
             klasa=klasa,
             katalog=katalog,
@@ -122,13 +143,17 @@ def _zaladuj_modul(sciezka: Path, nazwa: str) -> ModuleType:
     if spec is None or spec.loader is None:
         raise WpisBezZrodla(f"Nie można załadować {sciezka}")
     modul = importlib.util.module_from_spec(spec)
+    modul.__file__ = str(sciezka)
+    import sys
+
+    sys.modules[nazwa] = modul
     spec.loader.exec_module(modul)
     return modul
 
 
 def odkryj() -> None:
     """Ładuje wszystkie katalogi reguł i tłumaczeń (idempotentne)."""
-    global _ODKRYTE
+    global _ODKRYTE, _LADOWANY_KATALOG
     if _ODKRYTE:
         return
     baza = Path(__file__).resolve().parent
@@ -143,7 +168,11 @@ def odkryj() -> None:
             if not modul_py.is_file():
                 continue
             bezpieczna = katalog.name.replace("-", "_").replace(".", "_")
-            _zaladuj_modul(modul_py, f"fa3check.{rodzaj}.{bezpieczna}")
+            _LADOWANY_KATALOG = katalog.resolve()
+            try:
+                _zaladuj_modul(modul_py, f"fa3check.{rodzaj}.{bezpieczna}")
+            finally:
+                _LADOWANY_KATALOG = None
     _ODKRYTE = True
 
 

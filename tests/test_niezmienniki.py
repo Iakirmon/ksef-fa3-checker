@@ -62,6 +62,19 @@ def test_lxml_tylko_w_safexml() -> None:
     test_lxml_parser_tylko_w_safexml()
 
 
+def test_wpisy_tlumaczen_bez_komunikatu() -> None:
+    """Katalogi tlumaczenia/ nie odwołują się do .komunikat (tylko klucz)."""
+    naruszonia: list[str] = []
+    for plik in _pliki_py(SRC / "tlumaczenia"):
+        if plik.name == "__init__.py":
+            continue
+        drzewo = ast.parse(plik.read_text(encoding="utf-8"), filename=str(plik))
+        for node in ast.walk(drzewo):
+            if isinstance(node, ast.Attribute) and node.attr == "komunikat":
+                naruszonia.append(f"{plik.relative_to(ROOT)}:{node.lineno}")
+    assert naruszonia == [], naruszonia
+
+
 def test_wpisy_nie_importuja_warstwy_orkiestracji() -> None:
     naruszonia: list[str] = []
     for rodzaj in ("reguly", "tlumaczenia"):

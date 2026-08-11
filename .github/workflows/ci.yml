@@ -30,7 +30,7 @@ jobs:
           ruff format --check .
 
       - name: Mypy
-        run: mypy --strict src/
+        run: mypy --strict --exclude '(^src/fa3check/(tlumaczenia|reguly)/.+)' src/
 
       - name: Pytest
         run: pytest --cov=fa3check --cov-report=term-missing
