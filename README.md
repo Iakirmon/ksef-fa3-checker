@@ -1,6 +1,8 @@
-# fa3-check
+# ksef-fa3-checker
 
 A validator for Poland’s structured e-invoice format **FA(3)** (KSeF).
+
+Package / CLI module: `fa3check` (`python -m fa3check.web`).
 
 You paste the XML. You get back findings with a quote from the official MF source —
 not a raw parser message.
