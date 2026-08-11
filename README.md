@@ -5,7 +5,7 @@ A validator for Poland’s structured e-invoice format **FA(3)** (KSeF).
 You paste the XML. You get back findings with a quote from the official MF source —
 not a raw parser message.
 
-**Screenshots / demo page:** [GitHub Pages](https://iakirmon.github.io/fa3-check/)
+**Screenshots / demo page:** [GitHub Pages](https://iakirmon.github.io/ksef-fa3-checker/)
 (static preview — the validator itself runs locally).
 
 <p align="center">
