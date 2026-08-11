@@ -1,0 +1,17 @@
+# Pliki wyłączone z indeksowania, ale nadal dostępne do otwarcia na żądanie.
+#
+# Powód: schemat FA(3) i 26 przykładowych faktur to duże pliki XML, które przy
+# indeksowaniu zdominowałyby wyszukiwanie semantyczne i zaczęłyby wypierać kod
+# z kontekstu. Model ma je czytać celowo — reguła 30-zrodla wymaga sprawdzania
+# nazw pól w schemacie, a nie w pamięci — więc nie mogą trafić do .cursorignore.
+
+korpus/schema/
+korpus/zloty/
+
+# Korpus złośliwych plików: payloady ataków. Indeksowanie ich nie daje nic,
+# a fragmenty bomby entyfikacyjnej w kontekście to sam szum.
+korpus/zlosliwe/
+
+# Wyciąg reguł z broszury rośnie do kilkuset pozycji z długimi cytatami.
+# Czytany celowo w etapie 6, nie przez wyszukiwanie.
+docs/reguly-z-broszury.md

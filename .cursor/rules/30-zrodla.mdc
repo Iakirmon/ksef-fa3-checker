@@ -1,0 +1,99 @@
+---
+description: Zakaz wymyślania reguł walidacyjnych, kodów błędów i pól FA(3). Stosuj zawsze, gdy powstaje nowa reguła, gdy uzupełniane jest pole Zrodlo, gdy wyciągane są reguły z broszury FA(3) oraz gdy pojawia się pytanie, co KSeF sprawdza albo jak brzmi wymóg dotyczący pola faktury.
+---
+
+# Nie wymyślasz
+
+Ten projekt stoi na jednej obietnicy: **każda reguła mówi, skąd się wzięła.** Reguła wymyślona
+z pamięci wygląda dokładnie tak samo jak reguła przepisana z dokumentu — i dlatego jedna
+wymyślona reguła podważa wszystkie pozostałe.
+
+To nie jest ostrożność. To jest warunek istnienia projektu, bo audytowalność źródeł jest jedyną
+rzeczą, którą ten walidator ma nad konkurencją.
+
+## Reguła twarda
+
+**Nie ma cytatu — nie ma reguły.**
+
+`Zrodlo.cytat` musi być fragmentem **przepisanym z dokumentu**, z jego interpunkcją i jego
+brzmieniem. Nie parafrazą, nie streszczeniem, nie „na podstawie rozdziału o płatnościach".
+Jeśli nie potrafisz przepisać zdania, to znaczy, że nie masz dokumentu przed sobą — i wtedy
+nie piszesz reguły, tylko mówisz, że potrzebujesz dostępu do źródła.
+
+To samo dotyczy numerów stron. Numer strony wpisany „z grubsza" jest gorszy niż jego brak,
+bo wygląda na weryfikowalny.
+
+## Co wolno traktować jako źródło
+
+Wyłącznie dokumenty z `docs/zrodla.md`:
+
+| Rodzaj reguły | Jedyne dopuszczalne źródło |
+|---|---|
+| `SCH` | `korpus/schema/schemat_FA(3)_v1-0E.xsd` — czytany, nie wspominany |
+| `TEC` | `faktury/weryfikacja-faktury.md` z repozytorium `CIRFMF/ksef-docs` |
+| `FMT` | broszura FA(3), rozdział „Formaty pól (danych)…", s. 4–6 |
+| `SEM` | broszura FA(3), rozdziały opisujące elementy, s. 9–165 |
+| `ARY` | broszura FA(3), uzupełniająco ustawa o VAT |
+
+Czego **nie wolno** traktować jako źródła: wpisów na blogach firm księgowych, artykułów
+o „najczęstszych błędach KSeF", dokumentacji komercyjnych systemów ERP, treści reguł innych
+walidatorów, ani własnej pamięci o tym, jak działał KSeF 1.0 albo FA(2).
+
+Materiały wtórne wolno użyć do jednej rzeczy: żeby **znaleźć**, w którym miejscu dokumentu MF
+szukać. Do treści reguły nigdy.
+
+## Czego nie wymyślasz — konkretnie
+
+- **Kodów błędów KSeF.** Znane i sprawdzone: `440` „Duplikat faktury", `21401` niezgodność ze
+  schemą XSD, `21402` nieprawidłowy rozmiar pliku, `21403` nieprawidłowy skrót pliku, `21405`
+  błąd walidacji danych wejściowych. Innych nie dopisujesz, choćby wzorzec numeracji wydawał się
+  oczywisty. Kod błędu spoza tej listy nie istnieje, dopóki nie znajdziesz go w dokumentacji API.
+- **Nazw pól FA(3).** Pole istnieje wtedy, gdy jest w schemacie. `P_15` istnieje, `P_15A` nie
+  istnieje, dopóki nie znajdziesz go w XSD. Sprawdź w pliku, nie w pamięci — nazwy pól FA(2)
+  i FA(3) różnią się w sposób, który łatwo przeoczyć.
+- **Limitów i długości.** Wartości typu 256, 512, 50, 32, 13 znaków, 1 MB, 3 MB, 10 000 faktur
+  mają konkretne miejsca w dokumentach. Nie zaokrąglasz, nie zgadujesz i nie przenosisz z FA(2).
+- **Reguł arytmetycznych „bo tak wynika z VAT-u".** Jeśli reguła jest oczywista, to tym łatwiej
+  znajdziesz dla niej cytat. Jeśli nie znajdujesz — być może nie jest oczywista, tylko wygodna.
+- **Tego, co KSeF sprawdza.** Lista jest w `faktury/weryfikacja-faktury.md` i jest krótsza, niż
+  ludzie zakładają. Nie ma na niej weryfikacji rachunkowej ani semantycznej treści faktury.
+
+## Gdy nie wiesz
+
+Powiedz, że nie wiesz, i powiedz, którego dokumentu potrzebujesz. To jest poprawna odpowiedź
+i nie jest porażką.
+
+Sformułowania, które są w tym projekcie akceptowalne:
+
+> „Reguła dotycząca zależności między `P_16` i `P_17` prawdopodobnie istnieje, ale nie mam
+> cytatu — potrzebuję strony z rozdziału `Fa`, s. 42–85. Podaj fragment albo pozwól mi
+> przeczytać ten zakres broszury."
+
+Sformułowania **niedopuszczalne**: „zgodnie ze standardową praktyką", „typowo KSeF wymaga",
+„na podstawie schematu numeracji kodów błędów", „reguła wynika z ogólnych zasad VAT".
+
+## Sygnały ostrzegawcze u siebie samego
+
+Zatrzymaj się, jeśli piszesz:
+
+- cytat, który brzmi jak Twoje zdanie, a nie jak urzędowy dokument,
+- `strona=` z liczbą, której nie widziałeś,
+- listę pól, w której któreś dopisałeś „dla kompletności",
+- regułę dla przypadku, który wymyśliłeś, zamiast znalazłeś,
+- wyjaśnienie w `dlaczego`, które przewiduje reakcję KSeF, choć dokumentacja o niej nie mówi.
+
+Ostatni punkt jest najsubtelniejszy. Wolno napisać „KSeF odrzuci fakturę, bo pole ma
+zadeklarowany typ o dwóch miejscach dziesiętnych" — to wynika ze schematu. Nie wolno napisać
+„KSeF odrzuci fakturę, bo sumy się nie zgadzają" — to nieprawda, bo KSeF nie weryfikuje
+rachunkowej treści faktury, i takie zdanie wprowadza użytkownika w błąd co do tego, co go
+czeka po wysłaniu.
+
+## Granica kompetencji
+
+Nie orzekamy o obowiązkach ustawowych. Broszura sama rozdziela te dwie rzeczy: o polach
+`opcjonalny` mówi, że ich wypełnienie „nie jest wymagane dla poprawności semantycznej pliku"
+(s. 4), nawet gdy ustawa wypełnienia wymaga.
+
+Mówimy więc: „to pole jest w strukturze opcjonalne, ale w tym kontekście prawdopodobnie
+wymagane — sprawdź". Nie mówimy: „naruszasz art. 106e ustawy". Na to nie mamy kompetencji
+i będziemy się mylić, a walidator, który myli się w kwestiach prawnych, jest szkodliwy.

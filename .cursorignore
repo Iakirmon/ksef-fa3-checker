@@ -1,0 +1,30 @@
+# Pliki całkowicie poza zasięgiem modelu i indeksowania.
+# Wchodzi tu wyłącznie to, czego model nie ma powodu czytać.
+# Rzeczy duże, ale potrzebne na żądanie — schemat XSD, korpus faktur — są
+# w .cursorindexingignore, żeby dały się otworzyć, ale nie zaśmiecały wyszukiwania.
+
+# Środowisko i artefakty
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+dist/
+build/
+*.egg-info/
+
+# Zminifikowany, wendorowany JavaScript — nie ma czego czytać
+src/fa3check/web/static/htmx.min.js
+
+# Archiwa pobrane skryptem, przed rozpakowaniem
+korpus/*.zip
+korpus/tmp/
+
+# Lokalne
+.env
+.idea/
+.vscode/

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg
+
+# Broszura PDF — commitowany jest tylko wyciąg tekstowy
+korpus/broszura/*.pdf
+
+# System
+.DS_Store
+Thumbs.db
+
+# Archiwum źródłowe po rozpakowaniu
+korpus/zloty/*.zip
+_archive_flat/

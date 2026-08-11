@@ -1,0 +1,88 @@
+---
+description: Bezpieczeństwo i prywatność warstwy webowej fa3-check.
+globs: src/fa3check/web/**
+---
+
+# Warstwa webowa — zasady twarde
+
+Ta strona przyjmuje **niezaufany XML z cudzymi danymi handlowymi i osobowymi**. To nie jest
+formularz kontaktowy. Każda z poniższych zasad ma za sobą konkretny wektor ataku albo konkretne
+zobowiązanie wobec użytkownika, i każda jest sprawdzana testem w `tests/test_web.py`
+i `tests/test_safexml.py`.
+
+## Prywatność
+
+1. **Treść faktury żyje wyłącznie w pamięci obsługi żądania.** Zero zapisu na dysk, zero bazy
+   danych, zero cache'u, zero kolejki. Po zwróceniu odpowiedzi nie ma jej nigdzie.
+
+2. **W logu wyłącznie:** znacznik czasu, rozmiar w bajtach, liczba zastrzeżeń, czas
+   przetwarzania, kod odpowiedzi. **Nigdy:** NIP, numer faktury, nazwa podmiotu, kwota,
+   fragment XML-a, komunikat `lxml` zawierający treść węzła.
+
+   To dotyczy też logów wyjątków. `logger.exception()` na wyjątku, który w komunikacie nosi
+   fragment dokumentu, jest wyciekiem — i jest najczęstszym sposobem, w jaki taka strona
+   wycieka dane. Wyjątki loguj z własnym komunikatem, nie z surowym.
+
+3. **Informacja o prywatności widoczna przy polu wklejania**, nie w stopce i nie pod
+   odnośnikiem. Jednym zdaniem, po polsku, mówiąca prawdę: co się dzieje z plikiem i czego nie
+   zapisujemy.
+
+4. **Zero ruchu wychodzącego z procesu w trakcie walidacji.** Bez kursów NBP, bez sprawdzania
+   NIP w rejestrach, bez telemetrii, bez zewnętrznych czcionek i skryptów. `htmx.min.js` jest
+   wendorowany do `static/`. Strona ma działać z odciętym internetem — inaczej obietnica
+   z punktu 1 jest nieweryfikowalna.
+
+5. **Nigdy nie wysyłamy wklejonego XML-a do żadnego API KSeF.** Projekt nie jest klientem KSeF
+   i nie ma do tego ani uprawnień, ani zgody użytkownika.
+
+## Parsowanie
+
+6. **Parsowanie wyłącznie przez `safexml.sparsuj()`.** W całym katalogu `web/` nie może wystąpić
+   `etree.XMLParser`, `etree.fromstring`, `etree.parse` ani `xml.etree`. Domyślny parser `lxml`
+   rozwiązuje encje, więc drugie miejsce parsowania to gotowa dziura XXE.
+
+7. **Limit rozmiaru sprawdzany przed parsowaniem**, na poziomie ciała żądania — nie po
+   wczytaniu całości do pamięci. 1 MB, tyle samo co limit KSeF bez załączników.
+
+8. **Limit czasu na żądanie** i ograniczenie liczby żądań z jednego adresu. Bez tego bomba
+   obliczeniowa w XML-u wystarcza, żeby zdjąć stronę.
+
+## Interfejs
+
+9. **Wynik pokazuje pięć części zastrzeżenia**, nie sam komunikat. Zwinięte do jednego wiersza,
+   rozwijalne do pełnej treści razem z cytatem ze źródła i numerem strony. Cytat ze źródła jest
+   częścią produktu, nie ozdobą — na nim stoi cała obietnica projektu.
+
+10. **Surowe komunikaty `lxml` nie idą do użytkownika.** `Element 'X': This element is not
+    expected.` jest bezużyteczne dla księgowego. Tłumaczymy na pięcioczęściowe zastrzeżenie,
+    oryginał zostaje w polu diagnostycznym, pokazywanym najwyżej pod „szczegóły techniczne".
+
+11. **`GET /reguly` jest częścią produktu, nie stroną deweloperską.** Lista wszystkich reguł
+    z ich źródłami, cytatami i stronami, z filtrowaniem po poziomie. Ta strona pozwala sprawdzić
+    nas bez czytania kodu i to jest jej cały sens.
+
+12. **Bez JavaScriptu poza HTMX.** Bez frameworka, bez kroku budowania, bez `npm`. Jeśli coś
+    wymaga własnego skryptu — najpierw sprawdź, czy HTMX tego nie robi.
+
+13. **Szablony bez logiki.** Żadnych obliczeń w Jinja2. Wszystko, co trzeba policzyć albo
+    sformatować, przychodzi gotowe z warstwy pod nią.
+
+## Wdrożenie
+
+14. **Do ukończenia etapu 4 strona chodzi wyłącznie na `localhost`.** Nie stawiaj jej publicznie,
+    nie konfiguruj wdrożenia, nie dodawaj `Dockerfile` pod hosting. Hartowanie jest etapem 4
+    i jest warunkiem, nie formalnością.
+
+15. Nagłówki odpowiedzi ustawione jawnie: `Content-Security-Policy` bez `unsafe-inline` dla
+    skryptów, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
+
+## Test, który udowadnia punkt 2
+
+Napisz go tak, żeby faktycznie potrafił upaść:
+
+1. weź fakturę z rozpoznawalnym NIP-em i rozpoznawalnym numerem faktury,
+2. przechwyć wszystkie logi w trakcie żądania,
+3. poszukaj w nich tego NIP-u, numeru faktury i fragmentu XML-a,
+4. **sprawdź, że test upada**, gdy tymczasowo dopiszesz logowanie treści — i pokaż to.
+
+Test bezpieczeństwa, którego nie widziałeś czerwonego, nie jest testem bezpieczeństwa.

@@ -1,0 +1,165 @@
+---
+description: fa3-check — niezmienniki architektury, styl kodu i dyscyplina testów. Obowiązuje w całym repo.
+alwaysApply: true
+---
+
+# fa3-check — zasady projektu
+
+Projekt techniczny: `docs/spec/2026-08-11-fa3-check-design.md`. To dokument nadrzędny.
+Jeśli cokolwiek w tych zasadach jest z nim sprzeczne — spec ma rację, a rozbieżność zgłoś.
+
+Bibliografia źródeł: `docs/zrodla.md`. Reguła walidacyjna, której nie da się zaczepić
+w jednym z tych dokumentów, nie istnieje.
+
+## Czym jest ten projekt
+
+Walidator faktury ustrukturyzowanej FA(3) z warstwą webową. Obietnica, którą repo ma
+udowadniać swoją zawartością:
+
+> Każda reguła mówi, skąd się wzięła. Każdy błąd mówi, co z nim zrobić.
+
+Środek ciężkości leży **nie w liczbie reguł, a w ich audytowalności i w jakości wyjaśnień**.
+Istnieje kilka walidatorów FA(3), w tym `ksefuj` z 44 regułami. Nie wygramy liczbą reguł
+i nie próbujemy. Wygrywamy tym, że przy każdym wpisie stoi cytat ze źródła, a przy każdym
+błędzie zdanie mówiące, co zrobić.
+
+Jeśli masz do wyboru dodać dwudziestą regułę albo poprawić wyjaśnienie w istniejącej —
+poprawiaj wyjaśnienie.
+
+## Dwa rejestry — zasada, z której wynika architektura
+
+> **Reguła, którą łapie XSD, nie jest regułą — jest tłumaczeniem.**
+
+Schemat FA(3) to XML Schema 1.0, ale facetów używa w pełni: `fractionDigits`, `totalDigits`,
+`maxLength`, `pattern`, `minInclusive`. Precyzja kwot, formaty dat, długości pól i wzorce
+NIP-ów są już wymuszone przez `lxml`. Rozdział „Formaty pól" broszury FA(3) opisuje to, co
+schemat robi sam.
+
+| Rejestr | Co tam wchodzi |
+|---|---|
+| `src/fa3check/tlumaczenia/` | wszystko, co XSD łapie — zamiana komunikatu `lxml` na wyjaśnienie |
+| `src/fa3check/reguly/` | wyłącznie to, czego XML Schema 1.0 wyrazić nie umie |
+
+Poza zasięgiem XSD 1.0 zostaje: arytmetyka (brak `xs:assert`), zależności między odległymi
+polami, sumy kontrolne (wzorzec nie policzy modulo — `TNrNIP` sprawdza kształt NIP-u, nie sumę
+kontrolną), własności bajtów (BOM, instrukcje przetwarzania, rozmiar) oraz reguły zależne od
+stanu systemu.
+
+**Przed napisaniem reguły otwórz `korpus/schema/` i sprawdź, czy schemat już tego nie wymusza.**
+Reguła duplikująca XSD zostanie odrzucona przy audycie.
+
+## Niezmienniki — nie łam ich nigdy
+
+1. **Wpis nie wie nic o resztcie systemu.** Żaden plik w `src/fa3check/reguly/` ani
+   `src/fa3check/tlumaczenia/` nie importuje z `web`, `schema`, `walidacja` ani `safexml`.
+   Wolno mu importować wyłącznie z `typy`, `rejestr`, `faktura` i biblioteki standardowej.
+2. **Zależności idą w jedną stronę:** `reguly/` i `tlumaczenia/` → `rejestr` → `typy`. Warstwa
+   orkiestracji czyta rejestry; rejestry nie wiedzą nic o orkiestracji.
+3. **Reguła jest funkcją czystą.** Bez stanu, bez zapisu, bez odczytu plików, bez sieci, bez
+   zegara. Dostaje fasadę `Faktura`, zwraca `Iterator[Zastrzezenie]`. Reguła sięgająca po kurs
+   NBP z internetu przestaje być testowalna offline i pada w najgorszym momencie.
+4. **`safexml.py` jest jedynym miejscem, które parsuje XML.** `etree.XMLParser`,
+   `etree.fromstring` i `etree.parse` nie mają prawa wystąpić nigdzie indziej. Domyślny parser
+   `lxml` rozwiązuje encje, więc drugie miejsce parsowania to gotowa dziura XXE.
+   **Wymusza to `test_niezmienniki.py` analizą AST**, nie zaufanie.
+5. **`safexml` odrzuca `DOCTYPE` wprost.** Sprawdzone: przy `resolve_entities=False` XXE nie
+   wycieka, ale dokument **przechodzi bez błędu**. Faktura KSeF nie ma powodu mieć `DOCTYPE`,
+   więc odrzucenie czyni XXE niemożliwym strukturalnie, a nie tylko nieszkodliwym.
+6. **Kwoty wyłącznie `Decimal`.** `float` w kodzie liczącym pieniądze to błąd, nie wybór stylu.
+7. **Każdy wpis ma źródło z dosłownym cytatem.** `Zrodlo.cytat` jest obowiązkowy i musi
+   **występować dosłownie** w `korpus/broszura/broszura-fa3.txt`, a `Zrodlo.strona` musi
+   wskazywać stronę, na której się znajduje. Sprawdza to `test_zrodla.py` — nie jest to
+   dyscyplina, jest to bramka CI.
+8. **Wpis przegrywa z fakturą przykładową MF.** Gdy odpala się z wagą `BLAD` na którymkolwiek
+   z 26 plików w `korpus/zloty/`, zepsuty jest wpis — nie faktura. Wszystkie 26 są zgodne
+   z XSD, sprawdzone.
+9. **Nazwy typów XSD odczytujesz z `korpus/schema/`, nigdy z pamięci.** FA(3) używa
+   `TKwotowy`, `TKwotowy2`, `TIlosci`, `TDataT`, `TZnakowy512` — nie `TKwota2` ani `TData`,
+   które istnieją w schemacie bazowym, ale nie dla tych pól. Pierwsza wersja specu pomyliła
+   się dokładnie tutaj.
+10. **Dopasowanie tłumaczeń nigdy po treści komunikatu `lxml`** — wyłącznie po `error.type_name`,
+   nazwie typu XSD i nazwie elementu. Brzmienie komunikatów `libxml2` zmienia się między
+   wersjami. Surowy komunikat trafia tylko do pola `diagnostyka`, nigdy do treści widzianej
+   przez użytkownika.
+11. **Treść faktury nigdy nie trafia do logu, na dysk ani do bazy.** Nie ma bazy. Nie ma
+    zapisu. W logu wyłącznie: znacznik czasu, rozmiar w bajtach, liczba zastrzeżeń, czas
+    przetwarzania. Dotyczy to także logowania wyjątków — komunikaty `lxml` noszą treść węzła.
+12. **Nie orzekamy o obowiązkach ustawowych.** Mówimy, co jest niezgodne ze strukturą, formatem
+    albo arytmetyką. Nie mówimy podatnikowi, że naruszył przepis — na to nie mamy kompetencji
+    i będziemy się mylić. Nie przewidujemy też reakcji KSeF, której nie ma w dokumentacji:
+    system nie weryfikuje rachunkowej treści faktury.
+
+## Kod
+
+- Python 3.12+. Adnotacje typów wszędzie. `mypy --strict src/` musi przechodzić.
+- `ruff check` i `ruff format` czyste. Długość linii 100.
+- Nazwy identyfikatorów **po polsku**, spójnie z domeną: `zwaliduj`, `zastrzezenie`, `waga`,
+  `zrodlo`. Faktura, pola FA(3) i reguły mają polskie nazwy w dokumentach MF i tłumaczenie ich
+  na angielski tworzy tylko warstwę do odwracania w głowie.
+- Docstringi i komentarze po polsku. Cały projekt jest polskojęzyczny, w tym README.
+- `@dataclass(frozen=True, slots=True)` dla wyników, metadanych i zastrzeżeń. Struktury
+  wynikowe są niemutowalne.
+- Bez klas tam, gdzie wystarczy funkcja. Bez fabryk, bez wtyczek, bez warstw abstrakcji
+  „na przyszłość". YAGNI obowiązuje bezwzględnie.
+- Wyjątki: własna hierarchia w `typy.py` — `Fa3Error`, `XmlNiebezpieczny`, `XmlNiepoprawny`,
+  `RegulaBezZrodla`, `LimitPrzekroczony`. Nigdy `except:` ani `except Exception` bez ponownego
+  podniesienia. Jedyny wyjątek od tej zasady jest opisany w specu w sekcji 8.8: `walidacja.py`
+  łapie wyjątek pojedynczej reguły i zamienia go na zastrzeżenie `INFORMACJA`, żeby jedna
+  zepsuta reguła nie zabrała użytkownikowi wyniku z pozostałych. W testach ten sam wyjątek
+  musi wywalić test.
+
+## Zależności
+
+Produkcyjne, wyłącznie te: `lxml` (**wersja przypięta dokładnie**, nie zakresem), `fastapi`,
+`uvicorn`, `jinja2`, `python-multipart`.
+Deweloperskie: `pytest`, `pytest-cov`, `hypothesis`, `httpx`, `ruff`, `mypy`, `lxml-stubs`.
+
+`lxml-stubs` jest obowiązkowy — `lxml` nie ma typów wbudowanych, więc bez niego `mypy --strict`
+nie przejdzie. Wersja `lxml` przypięta dokładnie, bo słownik tłumaczeń zależy od kodów błędów
+`libxml2`; aktualizacja ma być świadoma i przechodzić przez `test_tlumaczenia.py`.
+
+Ogranicznik liczby żądań piszemy ręcznie — licznik w pamięci wystarcza, nowa zależność nie.
+
+`htmx.min.js` wendorowany do `src/fa3check/web/static/`, nigdy z CDN. Strona musi działać bez
+połączenia z internetem — inaczej obietnica, że nic nie wychodzi na zewnątrz, jest nieprawdziwa.
+
+**Nie dodawaj żadnej innej biblioteki bez pytania.** Jeśli uważasz, że któraś jest potrzebna —
+zapytaj i uzasadnij. Szczególnie: żadnej biblioteki do walidacji XSD poza `lxml`, żadnego
+frameworku frontendowego, żadnego ORM-a, żadnego klienta HTTP w kodzie produkcyjnym.
+
+## Testy — dyscyplina TDD
+
+Kolejność jest obowiązkowa: **najpierw test, uruchom go i zobacz, jak nie przechodzi, potem
+implementacja.** Test, którego nie widziałeś jako czerwonego, nie jest testem — jest życzeniem.
+
+- Testy reguł są **współdzielone i parametryzowane po rejestrze**. Żadna reguła nie ma własnego
+  pliku testowego. Nowa reguła dziedziczy cały zestaw automatycznie.
+- `test_zloty_korpus.py` jest bramką, nie formalnością. 26 faktur MF musi przechodzić z zerem
+  zastrzeżeń wagi `BLAD`.
+- `test_zrodla.py` sprawdza, że cytat przy każdym wpisie **występuje dosłownie** w wyciągu
+  broszury i że numer strony się zgadza. To zamienia główną obietnicę projektu w bramkę CI.
+- `test_niezmienniki.py` sprawdza architekturę analizą AST. Zasady z tego pliku są w nim
+  zakodowane — jeśli je złamiesz, CI zaświeci czerwono, niezależnie od tego, czy ktoś zauważy.
+- `test_reguly.py` działa **różnicowo**: zbiór zastrzeżeń z `lamie.xml` minus zbiór
+  z `przechodzi.xml` musi równać się dokładnie jednej regule. Nie „dokładnie jedno
+  zastrzeżenie" — to wymuszałoby sztuczne fixture'y i rozsypałoby się przy czterdziestu wpisach.
+- `test_wyjasnienia.py` pilnuje cechy, która jest połową sensu tego projektu. Lista zwrotów
+  zakazanych ma **rosnąć** za każdym razem, gdy wpadnie do niej ogólnik.
+- Nigdy nie osłabiaj asercji, żeby test przeszedł. Jeśli test nie przechodzi, zepsuty jest kod
+  albo zepsute jest założenie testu — rozstrzygnij które, powiedz to wprost i napraw właściwą
+  rzecz.
+- Nie dobieraj fixture'a pod regułę. Fixture ma być przypadkiem z życia, nie minimalnym
+  plikiem skrojonym tak, żeby reguła zaświeciła.
+- Pokrycie ≥ 90% dla `src/fa3check/` poza `web/szablony`.
+
+## Jak pracujemy
+
+- Jeden etap z sekcji 16 specu na raz. Nie wybiegaj do przodu.
+- Po każdym etapie uruchom i pokaż wynik:
+  `ruff check . ; if ($?) { mypy --strict src/ } ; if ($?) { pytest -q }`
+  Nie twierdź, że etap jest gotowy, dopóki nie zobaczysz tego na własne oczy.
+- Po każdej nowej regule uruchom złoty korpus.
+- Jeśli spec jest w jakimś punkcie niejasny — zapytaj. Nie zgaduj i nie wymyślaj rozszerzeń.
+- Nie commituj i nie pushuj bez wyraźnej prośby.
+- `korpus/zloty/` i `korpus/schema/` **commitujemy** razem z `PROVENANCE.md` — repo ma być
+  samowystarczalne i odtwarzalne.

@@ -1,0 +1,294 @@
+---
+description: Kontrakt pisania reguł walidacyjnych i tłumaczeń komunikatów XSD w fa3-check.
+globs: src/fa3check/reguly/**,src/fa3check/tlumaczenia/**
+---
+
+# Kontrakt wpisu
+
+Projekt ma **dwa rejestry** i pierwsze pytanie przy każdym nowym sprawdzeniu brzmi, do którego
+z nich to należy.
+
+> **Reguła, którą łapie XSD, nie jest regułą — jest tłumaczeniem.**
+
+| Rejestr | Co tam wchodzi |
+|---|---|
+| `tlumaczenia/` | wszystko, co XSD już łapi — zamieniamy komunikat `lxml` na wyjaśnienie |
+| `reguly/` | wyłącznie to, czego XML Schema 1.0 wyrazić **nie umie** |
+
+Schemat FA(3) używa `fractionDigits`, `totalDigits`, `maxLength`, `pattern`, `minInclusive`
+i `maxInclusive`. Precyzja kwot, formaty dat, długości pól i wzorce NIP-ów są już wymuszone.
+Pisanie na to reguły to duplikowanie `lxml` i zostanie odrzucone.
+
+Poza zasięgiem XSD 1.0 zostaje: **arytmetyka** (brak `xs:assert`), **zależności między odległymi
+polami**, **sumy kontrolne** (wzorzec nie policzy modulo), **własności bajtów** (BOM, instrukcje
+przetwarzania, rozmiar) i **reguły zależne od stanu systemu**.
+
+Zanim napiszesz regułę, sprawdź w `korpus/schema/`, czy schemat już tego nie wymusza. Jeśli
+wymusza — piszesz tłumaczenie.
+
+---
+
+# Część I — reguły
+
+## Szkielet katalogu
+
+```
+src/fa3check/reguly/<ID>/
+├── __init__.py               from .regula import *
+├── regula.py                 implementacja + @rejestruj
+├── zrodlo.md                 dłuższy cytat, kontekst, notatka o wyjątkach
+└── fixtures/
+    ├── przechodzi.xml        faktura, która tej reguły nie łamie
+    └── lamie.xml             faktura, która łamie dokładnie tę jedną regułę
+```
+
+Nazwa katalogu jest **dokładnie** identyfikatorem. Identyfikatory według poziomu: `TEC-nnn`
+(bajty i sumy kontrolne), `SEM-nnn` (zależności między polami), `ARY-nnn` (rachunki).
+
+## Wzorzec implementacji
+
+```python
+"""SEM-001 — polski NIP nabywcy w niewłaściwym polu."""
+
+from collections.abc import Iterator
+
+from fa3check.faktura import Faktura
+from fa3check.rejestr import rejestruj
+from fa3check.typy import Poziom, Waga, Zastrzezenie, Zrodlo
+
+ZRODLO = Zrodlo(
+    dokument="Broszura informacyjna dotycząca struktury logicznej FA(3)",
+    wersja="2026-03-04",
+    sekcja="Formaty pól (danych) pliku faktury ustrukturyzowanej, ramka WAŻNE",
+    strona=6,
+    cytat="Polski identyfikator podatkowy NIP nabywcy należy podawać w polu NIP "
+          "w elemencie Podmiot2/DaneIdentyfikacyjne. Nie należy wskazywać go w polu "
+          "NrVatUE, ani w polu NrID. Faktura zostanie odpowiednio udostępniona nabywcy "
+          "w KSeF wyłącznie, gdy jego identyfikator podatkowy NIP ujęto w polu NIP, "
+          "a nie w polu NrVatUE lub NrID.",
+    url="https://ksef.podatki.gov.pl/pliki-do-pobrania-ksef-20/",
+)
+
+
+@rejestruj(
+    id="SEM-001",
+    tytul="Polski NIP nabywcy podany w polu NrVatUE albo NrID",
+    poziom=Poziom.SEMANTYCZNA,
+    waga=Waga.BLAD,
+    zrodlo=ZRODLO,
+    dotyczy="//tns:Podmiot2/tns:DaneIdentyfikacyjne",
+)
+def nip_nabywcy_we_wlasciwym_polu(f: Faktura) -> Iterator[Zastrzezenie]:
+    """Wykrywa polski NIP zapisany w NrVatUE albo NrID zamiast w polu NIP."""
+    ...
+```
+
+## Zasady bezwzględne
+
+1. **Importy tylko z `fa3check.typy`, `fa3check.rejestr`, `fa3check.faktura` i biblioteki
+   standardowej.** Nic z `web`, `schema`, `walidacja`, `safexml`, `tlumaczenia`.
+
+2. **Funkcja czysta.** Bez stanu modułowego mutowalnego, bez odczytu i zapisu plików, bez sieci,
+   bez `datetime.now()`. Stałe modułowe wolno — i tak należy w nich trzymać listy pól, zamiast
+   wplatać je w kod.
+
+3. **`Zrodlo.cytat` to dosłowny fragment dokumentu.** Nie parafraza, nie streszczenie, nie
+   „na podstawie". Jeśli nie masz dokumentu przed sobą, nie pisz wpisu — przeczytaj
+   `.cursor/rules/30-zrodla.mdc`.
+
+4. **Operuj wyłącznie przez fasadę `Faktura`:** `f.xp()`, `f.tekst()`, `f.dec()`, `f.linia()`,
+   `f.obecny()`, `f.surowe_bajty()`. Nigdy własny XPath z ręcznie wpisanym namespace'em —
+   namespace jest w jednym miejscu, żeby FA(4) był zmianą jednej stałej.
+
+5. **Kwoty wyłącznie `Decimal`.** `f.dec()` zwraca `Decimal | None`. Gdy dostaniesz `None`,
+   **reguła milczy** — wartość jest niepoprawna formatowo i zajmuje się nią XSD. Bez tej zasady
+   jeden błąd formatu produkuje lawinę zastrzeżeń arytmetycznych.
+
+6. **Reguła sprawdza jedną rzecz.** Dwa niezależne warunki z dwoma różnymi cytatami to dwie
+   reguły i dwa katalogi. `test_reguly.py` i tak to wykryje, bo `lamie.xml` odpali dwie reguły.
+
+7. **`surowe_bajty()` wolno użyć wyłącznie w regułach `TECHNICZNA`.** BOM, instrukcje
+   przetwarzania i rozmiar pliku są własnościami bajtów, nie drzewa.
+
+8. **Fixture `lamie.xml` dla reguł `SEMANTYCZNA` i `ARYTMETYCZNA` musi przechodzić XSD.** Jeśli
+   nie przechodzi, to nie jest reguła semantyczna — XSD złapie ją bez nas i sprawa należy do
+   `tlumaczenia/`.
+
+9. **Nie pisz testów w katalogu wpisu.** Zestaw jest współdzielony i parametryzowany po
+   rejestrach. Jeśli czujesz, że potrzebujesz osobnego testu, wpis łamie któryś z punktów powyżej.
+
+---
+
+# Część II — tłumaczenia
+
+## Szkielet katalogu
+
+```
+src/fa3check/tlumaczenia/<ID>/
+├── __init__.py
+├── tlumaczenie.py            @tlumacz
+├── zrodlo.md
+└── fixtures/wywoluje.xml     faktura, która wywołuje ten błąd XSD
+```
+
+Identyfikatory **opisowe, nie po nazwie typu**: `XSD-kwota-precyzja`, `XSD-kwota-zapis`,
+`XSD-wzorzec`, `XSD-data-zakres`, `XSD-dlugosc`, `XSD-struktura`, `XSD-zapasowe`. Nazwa typu
+może się zmienić przy nowym wzorze faktury, opis problemu nie.
+
+## Wzorzec
+
+```python
+"""XSD-data-zakres — data poza dopuszczalnym zakresem typu."""
+
+from fa3check.rejestr import tlumacz
+from fa3check.typy import KluczBledu, Zrodlo
+
+ZRODLO = Zrodlo(
+    dokument="Broszura informacyjna dotycząca struktury logicznej FA(3)",
+    wersja="2026-03-04",
+    sekcja="Formaty pól (danych) pliku faktury ustrukturyzowanej, pkt 8",
+    strona=6,
+    cytat="Daty podawane są w formacie RRRR-MM-DD (np. 2026-02-01).",
+)
+
+
+@tlumacz(
+    id="XSD-data-zakres",
+    klucz=KluczBledu(typ_lxml="SCHEMAV_CVC_MININCLUSIVE_VALID"),
+    zrodlo=ZRODLO,
+)
+class TlumaczenieZakresDaty:
+    def co(self, blad): ...
+    def dlaczego(self, blad): ...
+    def jak_naprawic(self, blad): ...
+```
+
+Tłumaczenia **nie mają pola `waga`** — naruszenie schematu zawsze oznacza odrzucenie przez KSeF,
+więc byłoby to pole o jednej możliwej wartości.
+
+## Zasady bezwzględne
+
+1. **Dopasowanie NIGDY po treści komunikatu.** Wyłącznie po `KluczBledu`: `typ_lxml`
+   (`error.type_name`), `typ_xsd` (nazwa typu ze schematu), `element` (nazwa lokalna). Brzmienie
+   komunikatów `libxml2` zmienia się między wersjami, więc dopasowanie po podłańcuchu tekstu to
+   awaria odłożona do pierwszej aktualizacji.
+
+   Test tego pilnuje: `test_tlumaczenia.py` zeruje pole `komunikat` i sprawdza, że dopasowanie
+   nadal działa. Jeśli w Twoim kodzie jest `"not a valid value" in blad.komunikat` — test upadnie
+   i ma upaść.
+
+2. **Surowy komunikat `lxml` nigdy nie idzie do użytkownika jako główna treść.** Trafia wyłącznie
+   do pola `diagnostyka`, pokazywanego pod „szczegółami technicznymi".
+
+3. **Tłumaczenie ma cytat ze źródła jak reguła.** Zaczepienie w broszurze tłumaczy, *dlaczego*
+   takie ograniczenie istnieje. Sam schemat mówi tylko *że* istnieje, a to za mało dla kogoś, kto
+   chce zrozumieć.
+
+4. **Wartości graniczne i nazwy typów bierz ze schematu, nigdy z pamięci.** To jest miejsce,
+   w którym pierwsza wersja specu się pomyliła — wpisałem typy `TKwota2` i `TData`, które
+   istnieją w schemacie bazowym, ale FA(3) ich do tych pól nie używa. Prawdziwe, odczytane
+   z plików:
+
+   | Pole | Typ | Facety |
+   |---|---|---|
+   | `P_15`, `P_11` | `TKwotowy` | `totalDigits=18`, `fractionDigits=2` |
+   | `P_9A`, `P_9B` | `TKwotowy2` | `totalDigits=22`, `fractionDigits=8` |
+   | `KursWaluty` | `TIlosci` | `totalDigits=22`, `fractionDigits=6` |
+   | `P_1` | `TDataT` | `minInclusive=2006-01-01`, `maxInclusive=2050-01-01` |
+   | `Nazwa` | `TZnakowy512` | `minLength=1`, `maxLength=512` |
+   | `NIP` | `TNrNIP` | `pattern` — **bez sumy kontrolnej** |
+
+   Otwórz `korpus/schema/bazowe/ElementarneTypyDanych_v10-0E.xsd` i sprawdź, zanim wpiszesz
+   jakąkolwiek liczbę do wyjaśnienia.
+
+5. **Ten sam błąd może dać różne kody.** Kwota `1234.567` daje
+   `SCHEMAV_CVC_FRACTIONDIGITS_VALID`, ale kwota `1 234.56` daje
+   `SCHEMAV_CVC_DATATYPE_VALID_1_2_1`, a nie `PATTERN_VALID` — bo ze spacją nie jest nawet
+   liczbą i odpada na typie bazowym. Klucz musi to uwzględniać.
+
+6. **`SCHEMAV_ELEMENT_CONTENT` nie rozstrzygaj z komunikatu.** Ten jeden kod obsługuje brak
+   wymaganego elementu, element nadmiarowy i zaburzoną kolejność, a `error.path` wskazuje
+   **sąsiada, nie winowajcę**. Rozstrzyga to `struktura.porownaj()`, wyliczając różnicę wobec
+   modelu treści ze schematu.
+
+7. **Tłumaczenie zapasowe istnieje, ale trafienie w nie w testach to błąd.** `test_tlumaczenia.py`
+   wymaga, żeby żaden błąd z fixture'ów ani ze złotego korpusu nie wpadł do zapasowego.
+
+---
+
+# Wspólne — zastrzeżenie w pięciu częściach
+
+To jest cecha wyróżniająca całego projektu. Zastrzeżenie bez wyjaśnienia jest gorsze niż brak
+zastrzeżenia, bo uczy użytkownika ignorować komunikaty.
+
+| Pole | Co ma zawierać | Antywzorzec |
+|---|---|---|
+| `co` | co konkretnie jest nie tak, **z liczbami z tej faktury** i nazwą pola | „nieprawidłowa wartość" |
+| `dlaczego` | jaki to ma skutek — dla KSeF, dla nabywcy, dla rozliczenia | „pole jest niezgodne ze specyfikacją" |
+| `jak_naprawic` | co zrobić, w trybie rozkazującym | „popraw wartość" |
+| `xpath` | ścieżka do węzła, nie do rodzica | `//tns:Fa` przy błędzie w pozycji |
+| `linia` | numer linii w pliku wejściowym | `None`, gdy da się go ustalić |
+
+Wzorzec dobrego wyjaśnienia — reguła `SEM-001`:
+
+```python
+Zastrzezenie(
+    wpis="SEM-001",
+    waga=Waga.BLAD,
+    poziom=Poziom.SEMANTYCZNA,
+    xpath="//tns:Podmiot2/tns:DaneIdentyfikacyjne/tns:NrVatUE",
+    linia=31,
+    co="Numer 5261040828 wygląda na polski NIP, a jest zapisany w polu NrVatUE. "
+       "Pole NIP w elemencie Podmiot2/DaneIdentyfikacyjne jest puste.",
+    dlaczego="Faktura zostanie przyjęta przez KSeF i dostanie numer, ale nabywca jej "
+             "nie zobaczy — system udostępnia fakturę nabywcy tylko wtedy, gdy jego NIP "
+             "jest w polu NIP, a nie w NrVatUE lub NrID.",
+    jak_naprawic="Przenieś 5261040828 do pola NIP w elemencie "
+                 "Podmiot2/DaneIdentyfikacyjne i usuń NrVatUE. Pole NrVatUE służy do "
+                 "numerów VAT UE kontrahentów zagranicznych.",
+    zrodlo=ZRODLO,
+)
+```
+
+Zwróć uwagę na dwie rzeczy. `dlaczego` mówi o skutku, który **nie jest odrzuceniem** — faktura
+przejdzie, a mimo to jest zepsuta. To jest dokładnie rodzaj informacji, po który ktoś przychodzi
+do tego narzędzia. A `jak_naprawic` nie tylko mówi, co zrobić, ale wyjaśnia, do czego właściwe
+pole służy.
+
+Zwroty **zakazane** i wyłapywane testem: „nieprawidłowa wartość", „błąd walidacji", „niepoprawne
+dane", „niezgodne ze specyfikacją", „popraw wartość", „sprawdź poprawność". Lista jest
+w `tests/test_wyjasnienia.py` i ma rosnąć.
+
+Nie przewiduj reakcji KSeF, której nie ma w dokumentacji. Wolno napisać „KSeF odrzuci fakturę,
+bo pole ma zadeklarowany typ o dwóch miejscach dziesiętnych" — to wynika ze schematu. Nie wolno
+napisać „KSeF odrzuci fakturę, bo sumy się nie zgadzają" — system nie weryfikuje rachunkowej
+treści faktury i takie zdanie wprowadza użytkownika w błąd.
+
+# Wspólne — wagi
+
+Zasada wyprowadzona z broszury (s. 4), nie z przeczucia:
+
+| Waga | Kiedy |
+|---|---|
+| `BLAD` | naruszenie schematu, sumy kontrolnej, arytmetyki albo obowiązkowości strukturalnej |
+| `OSTRZEZENIE` | pole `opcjonalny` niewypełnione, a kontekst wskazuje na spełniony warunek ustawowy; albo reguła nierozstrzygalna offline, ale prawdopodobna |
+| `INFORMACJA` | reguła zależna od stanu systemu, nierozstrzygalna po jednym pliku |
+
+Broszura mówi o polach `opcjonalny`, że ich wypełnienie „nie jest wymagane dla poprawności
+semantycznej pliku". Dlatego brak takiego pola **nigdy** nie jest `BLAD`, choćby wydawał się
+oczywisty. Nie podnoś wagi, żeby użytkownik „na pewno zauważył".
+
+# Wspólne — `zrodlo.md`
+
+Cztery sekcje, zwięźle:
+
+**Cytat** — dłuższy fragment niż w dekoratorze, z kontekstem akapitu i numerem strony.
+
+**Interpretacja** — jak z cytatu wynika ta konkretna implementacja. Tu wpisujesz decyzje, które
+w kodzie są niewidoczne.
+
+**Wyjątki** — pola, których wpis nie dotyczy, i skąd o tym wiadomo. Jeśli nie ma, napisz „brak" —
+puste miejsce jest nieodróżnialne od przeoczenia.
+
+**Czego wpis nie sprawdza** — najważniejsza sekcja i najczęściej pomijana. Dla reguł: granica
+reguły. Dla tłumaczeń: które warianty tego samego błędu XSD trafiają gdzie indziej.
