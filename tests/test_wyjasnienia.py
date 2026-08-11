@@ -5,10 +5,9 @@ from __future__ import annotations
 import re
 
 import pytest
+from tests.helpers import faktura_z_fixture
 
-from fa3check.faktura import Faktura
 from fa3check.rejestr import odkryj, reguly, reset_do_testow
-from fa3check.safexml import sparsuj
 
 ZWROTY_ZAKAZANE = [
     "nieprawidłowa wartość",
@@ -21,7 +20,6 @@ ZWROTY_ZAKAZANE = [
     "facet",
 ]
 
-# Żargon XSD niedozwolony w treści widzianej przez użytkownika
 ZARGON = ["atomic type", "facet", "XSD", "schema validation"]
 
 
@@ -34,7 +32,7 @@ def _pola_fa3(tekst: str) -> bool:
         return True
     return bool(
         re.search(
-            r"\b(NIP|NrVatUE|NrID|P_\d+|Podmiot[123]|FaWiersz|KodUE)\b",
+            r"\b(NIP|NrVatUE|NrID|P_\d+|Podmiot[123]|FaWiersz|KodUE|BOM|UTF-8)\b",
             tekst,
         )
     )
@@ -51,8 +49,9 @@ def test_wyjasnienia_lamie(regula_id: str) -> None:
     reset_do_testow()
     odkryj()
     regula = next(r for r in reguly() if r.id == regula_id)
-    dok = sparsuj((regula.katalog / "fixtures" / "lamie.xml").read_bytes())
-    f = Faktura.z_dokumentu(dok)
+    # TEC-006/007: przechodzi też odpala regułę
+    sciezka = regula.katalog / "fixtures" / "lamie.xml"
+    f = faktura_z_fixture(sciezka)
     zastrzezenia = list(regula.funkcja(f))
     assert zastrzezenia, f"{regula_id}: lamie.xml nie wyprodukowało zastrzeżenia"
     for z in zastrzezenia:

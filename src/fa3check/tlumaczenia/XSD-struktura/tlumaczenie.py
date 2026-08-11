@@ -68,13 +68,9 @@ class TlumaczenieStruktura:
                 + "."
             )
         if r and r.przestawione:
-            return (
-                f"Uporządkuj dzieci elementu {r.rodzic} zgodnie z kolejnością ze schematu FA(3)."
-            )
+            return f"Uporządkuj dzieci elementu {r.rodzic} zgodnie z kolejnością ze schematu FA(3)."
         if r and r.nadmiarowe:
-            return (
-                f"Usuń nieznane elementy z {r.rodzic}: " + ", ".join(r.nadmiarowe) + "."
-            )
+            return f"Usuń nieznane elementy z {r.rodzic}: " + ", ".join(r.nadmiarowe) + "."
         return (
             "Porównaj fragment XML ze schematem FA(3) i broszurą — uzupełnij brakujące "
             "pola obligatoryjne i przywróć kolejność elementów."

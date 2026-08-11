@@ -65,14 +65,14 @@ def test_wszystkie_cytaty_doslowne(broszura_txt: str, weryfikacja_txt: str) -> N
         assert cytat.strip(), wpis.id
         norm = _normalizuj(cytat)
         dok = wpis.zrodlo.dokument.lower()
-        if "broszura" in dok or "fa(3)" in dok.lower() or wpis.zrodlo.strona is not None:
+        if "weryfikacja" in dok or "ksef-docs" in dok:
+            assert norm in wer_n, f"{wpis.id}: cytatu brak w weryfikacja-faktury.md"
+        elif "broszura" in dok or "fa(3)" in dok.lower() or wpis.zrodlo.strona is not None:
             assert norm in broszura_n, f"{wpis.id}: cytatu brak w broszurze"
             if wpis.zrodlo.strona is not None:
                 assert _strona_cytatu(broszura_txt, cytat) == wpis.zrodlo.strona, (
                     f"{wpis.id}: zła strona"
                 )
-        elif "weryfikacja" in dok:
-            assert norm in wer_n, f"{wpis.id}: cytatu brak w weryfikacja-faktury.md"
         else:
             assert norm in broszura_n or norm in wer_n, f"{wpis.id}: cytatu brak w źródłach"
 

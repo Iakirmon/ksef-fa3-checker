@@ -57,9 +57,7 @@ def test_zadne_fixture_ani_zloty_w_zapasowym() -> None:
     from pathlib import Path
 
     sciezki = [
-        t.katalog / "fixtures" / "wywoluje.xml"
-        for t in tlumaczenia()
-        if t.id != "XSD-zapasowe"
+        t.katalog / "fixtures" / "wywoluje.xml" for t in tlumaczenia() if t.id != "XSD-zapasowe"
     ]
     sciezki += sorted(Path("korpus/zloty").glob("fa3-przyklad-*.xml"))
     for sciezka in sciezki:

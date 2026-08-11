@@ -36,9 +36,7 @@ class TlumaczenieDlugosc:
         )
 
     def dlaczego(self, blad: BladSchematu) -> str:
-        return (
-            "KSeF odrzuci fakturę, bo długość pola wykracza poza limit ze schematu FA(3)."
-        )
+        return "KSeF odrzuci fakturę, bo długość pola wykracza poza limit ze schematu FA(3)."
 
     def jak_naprawic(self, blad: BladSchematu) -> str:
         limit = _LIMITY.get(blad.typ_xsd or "", 256)

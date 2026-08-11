@@ -70,9 +70,7 @@ def _katalog_z_funkcji(obj: Any) -> Path:
         plik = getattr(modul, "__file__", None) if modul is not None else None
         if plik:
             return Path(plik).resolve().parent
-        raise WpisBezZrodla(
-            f"Nie można ustalić katalogu wpisu dla {obj!r}"
-        ) from None
+        raise WpisBezZrodla(f"Nie można ustalić katalogu wpisu dla {obj!r}") from None
 
 
 def rejestruj(
