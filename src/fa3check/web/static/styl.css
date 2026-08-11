@@ -1,0 +1,112 @@
+:root {
+  --tlo: #f7f4ef;
+  --atrament: #1c1a16;
+  --akcent: #0b5f4a;
+  --blad: #8b1e1e;
+  --ostrz: #8a5a00;
+  --info: #1a4a6b;
+  --ramka: #d4cdc2;
+  --karta: #fffdf9;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 10% 0%, #ebe4d8 0%, transparent 50%),
+    linear-gradient(180deg, #faf7f2, var(--tlo));
+  color: var(--atrament);
+  line-height: 1.45;
+  min-height: 100vh;
+}
+.naglowek {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--ramka);
+}
+.marka {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--akcent);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+nav a { color: var(--atrament); margin-left: 1rem; }
+main { max-width: 52rem; margin: 0 auto; padding: 1.5rem; }
+h1 { font-size: 1.75rem; margin: 0 0 0.5rem; }
+.lead { color: #4a453c; margin-bottom: 1.25rem; }
+label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+textarea {
+  width: 100%;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ramka);
+  background: var(--karta);
+  border-radius: 2px;
+}
+.prywatnosc {
+  font-size: 0.95rem;
+  background: #e8f2ee;
+  border-left: 3px solid var(--akcent);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0 1rem;
+}
+button {
+  background: var(--akcent);
+  color: #fff;
+  border: 0;
+  padding: 0.65rem 1.25rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: wait; }
+.werdykt {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem;
+}
+.werdykt.czesciowy { color: var(--ostrz); }
+.ok { color: var(--akcent); }
+.blad { color: var(--blad); font-weight: 600; }
+.lista-zastrzezen { list-style: none; padding: 0; }
+.lista-zastrzezen li {
+  background: var(--karta);
+  border: 1px solid var(--ramka);
+  margin-bottom: 0.5rem;
+  padding: 0.35rem 0.75rem;
+}
+summary { cursor: pointer; display: flex; gap: 0.75rem; align-items: baseline; }
+.id { font-family: ui-monospace, Menlo, monospace; font-weight: 700; color: var(--akcent); white-space: nowrap; }
+.skrot { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+dl { margin: 0.75rem 0; }
+dt { font-weight: 700; margin-top: 0.5rem; }
+dd { margin: 0.2rem 0 0; }
+.diag {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+  color: #5a554c;
+  word-break: break-word;
+}
+.meta { color: #6a645a; font-size: 0.9rem; }
+.katalog { list-style: none; padding: 0; }
+.katalog li {
+  border-bottom: 1px solid var(--ramka);
+  padding: 1rem 0;
+}
+.poziom { color: #6a645a; font-size: 0.9rem; margin-left: 0.5rem; }
+blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--ramka);
+  font-style: italic;
+}
+.zrodlo-meta { font-size: 0.9rem; color: #5a554c; }
+.filtry { margin-bottom: 1.5rem; }
+.waga-blad { color: var(--blad); }
+.waga-ostrzezenie { color: var(--ostrz); }
+.waga-informacja { color: var(--info); }

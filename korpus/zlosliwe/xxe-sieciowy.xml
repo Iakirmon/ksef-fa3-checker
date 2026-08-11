@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Faktura [
+<!ENTITY xxe SYSTEM "http://127.0.0.1:9/xxe-probe">
+]>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"><x>&xxe;</x></Faktura>

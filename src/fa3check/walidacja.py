@@ -11,9 +11,13 @@ from fa3check.safexml import Dokument, sparsuj
 from fa3check.schema import sprawdz
 from fa3check.tlumaczenia import na_zastrzezenie
 from fa3check.typy import (
+    Fa3Error,
+    LimitPrzekroczony,
     Poziom,
     Waga,
     Wynik,
+    XmlNiebezpieczny,
+    XmlNiepoprawny,
     Zastrzezenie,
     Zrodlo,
 )
@@ -31,6 +35,14 @@ ZRODLO_KORZEN = Zrodlo(
         "https://crd.gov.pl/wzor/2025/06/25/13775/."
     ),
     url="https://crd.gov.pl/wzor/2025/06/25/13775/",
+)
+
+ZRODLO_TECH = Zrodlo(
+    dokument="Weryfikacja faktury (CIRFMF/ksef-docs)",
+    wersja="2026-04-09",
+    sekcja="Weryfikacja XML",
+    cytat="musi być przygotowana jako poprawny dokument XML, zgodny z regułami XML 1.0,",
+    url="https://github.com/CIRFMF/ksef-docs/blob/main/faktury/weryfikacja-faktury.md",
 )
 
 # W testach pytest ustawiane na True — wyjątek reguły wywala test.
@@ -131,9 +143,51 @@ def _korzen_ok(dok: Dokument) -> bool:
     return lokalna == KORZEN_OCZEKIWANY and przestrzen == NS_FA3
 
 
+def _zastrzezenie_parsowania(exc: Fa3Error) -> Zastrzezenie:
+    if isinstance(exc, LimitPrzekroczony):
+        co = "Plik przekracza dopuszczalny rozmiar 3 MB."
+        jak = "Zmniejsz plik albo usuń zbędne załączniki i spróbuj ponownie."
+        wpis = "LIMIT"
+    elif isinstance(exc, XmlNiebezpieczny):
+        co = "Dokument zawiera konstrukcje XML niedozwolone w fakturze FA(3) (np. DOCTYPE)."
+        jak = "Usuń deklarację DOCTYPE i encje zewnętrzne z pliku."
+        wpis = "XML-NIEBEZPIECZNY"
+    elif isinstance(exc, XmlNiepoprawny):
+        co = "Dokument nie jest poprawnym XML-em UTF-8 wymaganym dla faktury FA(3)."
+        jak = "Zapisz plik jako UTF-8 bez BOM, bez instrukcji przetwarzania, i sprawdź składnię."
+        wpis = "XML-NIEPOPRAWNY"
+    else:
+        co = "Nie udało się odczytać dokumentu jako faktury FA(3)."
+        jak = "Sprawdź, czy wklejasz kompletny plik XML faktury."
+        wpis = "XML"
+    return Zastrzezenie(
+        wpis=wpis,
+        waga=Waga.BLAD,
+        poziom=Poziom.TECHNICZNA,
+        xpath="/*",
+        linia=None,
+        co=co,
+        dlaczego=(
+            "Bez poprawnego, bezpiecznego XML-a nie da się wiarygodnie sprawdzić pól faktury FA(3)."
+        ),
+        jak_naprawic=jak,
+        zrodlo=ZRODLO_TECH,
+        diagnostyka=type(exc).__name__,
+    )
+
+
 def zwaliduj(dane: bytes) -> Wynik:
     t0 = time.perf_counter()
-    dok = sparsuj(dane)
+    try:
+        dok = sparsuj(dane)
+    except Fa3Error as exc:
+        return Wynik(
+            zastrzezenia=_sortuj([_zastrzezenie_parsowania(exc)]),
+            schema_ok=False,
+            czesciowy=False,
+            czas_ms=int((time.perf_counter() - t0) * 1000),
+        )
+
     if not _korzen_ok(dok):
         return Wynik(
             zastrzezenia=_sortuj([_zastrzezenie_korzenia(dok)]),

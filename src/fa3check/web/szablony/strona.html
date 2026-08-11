@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fa3-check — walidator FA(3)</title>
+  <link rel="stylesheet" href="/static/styl.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="naglowek">
+    <a href="/" class="marka">fa3-check</a>
+    <nav>
+      <a href="/reguly">Reguły i źródła</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Sprawdź fakturę FA(3)</h1>
+    <p class="lead">Wklej XML faktury ustrukturyzowanej. Wynik pokazuje źródło każdej uwagi.</p>
+    <form hx-post="/waliduj" hx-target="#wynik" hx-swap="innerHTML" hx-disabled-elt="this">
+      <label for="xml">XML faktury</label>
+      <textarea id="xml" name="xml" rows="18" maxlength="3500000"
+        placeholder="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;…"></textarea>
+      <p class="prywatnosc">
+        Plik jest sprawdzany wyłącznie w pamięci tej sesji: nic nie zapisujemy na dysk,
+        nie wysyłamy do KSeF ani nigdzie indziej (limit {{ limit_mb }}&nbsp;MB).
+      </p>
+      <button type="submit">Waliduj</button>
+    </form>
+    <div id="wynik" aria-live="polite"></div>
+  </main>
+</body>
+</html>

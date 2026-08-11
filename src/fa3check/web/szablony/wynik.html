@@ -1,0 +1,36 @@
+<section class="wynik">
+  <p class="werdykt{% if wynik.czesciowy %} czesciowy{% endif %}">{{ werdykt }}</p>
+  {% if not grupy %}
+  <p class="ok">Brak zastrzeżeń.</p>
+  {% endif %}
+  {% for grupa in grupy %}
+  <h2 class="waga-{{ grupa.waga }}">{{ grupa.etykieta }} ({{ grupa.pozycje|length }})</h2>
+  <ul class="lista-zastrzezen">
+    {% for z in grupa.pozycje %}
+    <li>
+      <details>
+        <summary>
+          <span class="id">{{ z.wpis }}</span>
+          <span class="skrot">{{ z.co }}</span>
+        </summary>
+        <dl>
+          <dt>Co</dt><dd>{{ z.co }}</dd>
+          <dt>Dlaczego</dt><dd>{{ z.dlaczego }}</dd>
+          <dt>Jak naprawić</dt><dd>{{ z.jak_naprawic }}</dd>
+          <dt>Źródło</dt>
+          <dd>
+            {{ z.zrodlo.dokument }}
+            {% if z.zrodlo.strona %}(s. {{ z.zrodlo.strona }}){% endif %}
+            — „{{ z.zrodlo.cytat }}”
+          </dd>
+          {% if z.diagnostyka %}
+          <dt>Szczegóły techniczne</dt><dd class="diag">{{ z.diagnostyka }}</dd>
+          {% endif %}
+        </dl>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+  <p class="meta">Czas: {{ wynik.czas_ms }} ms · zastrzeżeń: {{ wynik.zastrzezenia|length }}</p>
+</section>

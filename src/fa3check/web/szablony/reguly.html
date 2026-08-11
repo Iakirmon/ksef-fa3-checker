@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reguły i źródła — fa3-check</title>
+  <link rel="stylesheet" href="/static/styl.css">
+</head>
+<body>
+  <header class="naglowek">
+    <a href="/" class="marka">fa3-check</a>
+    <nav>
+      <a href="/">Walidacja</a>
+      <a href="/reguly">Reguły i źródła</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Reguły i tłumaczenia</h1>
+    <p class="lead">Każdy wpis ma źródło z cytatem — możesz nas sprawdzić bez czytania kodu.</p>
+    <form method="get" class="filtry">
+      <label for="poziom">Poziom</label>
+      <select id="poziom" name="poziom">
+        <option value="">Wszystkie</option>
+        {% for p in poziomy %}
+        <option value="{{ p }}"{% if wybrany == p %} selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Filtruj</button>
+    </form>
+
+    <h2>Reguły ({{ reguly|length }})</h2>
+    <ul class="katalog">
+      {% for r in reguly %}
+      <li>
+        <strong>{{ r.id }}</strong> — {{ r.tytul }}
+        <span class="poziom">{{ r.poziom.value }} / {{ r.waga.value }}</span>
+        <blockquote>{{ r.zrodlo.cytat }}</blockquote>
+        <p class="zrodlo-meta">
+          {{ r.zrodlo.dokument }}
+          {% if r.zrodlo.strona %}· s. {{ r.zrodlo.strona }}{% endif %}
+          · {{ r.zrodlo.sekcja }}
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <h2>Tłumaczenia schematu ({{ tlumaczenia|length }})</h2>
+    <ul class="katalog">
+      {% for t in tlumaczenia %}
+      <li>
+        <strong>{{ t.id }}</strong>
+        <blockquote>{{ t.zrodlo.cytat }}</blockquote>
+        <p class="zrodlo-meta">
+          {{ t.zrodlo.dokument }}
+          {% if t.zrodlo.strona %}· s. {{ t.zrodlo.strona }}{% endif %}
+          · {{ t.zrodlo.sekcja }}
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
+  </main>
+</body>
+</html>

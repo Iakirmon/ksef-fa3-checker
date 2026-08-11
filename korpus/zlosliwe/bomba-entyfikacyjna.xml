@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE bomb [
+<!ENTITY a "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa">
+<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+<!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+<!ENTITY d "&c;&c;&c;&c;&c;&c;&c;&c;&c;&c;">
+<!ENTITY e "&d;&d;&d;&d;&d;&d;&d;&d;&d;&d;">
+<!ENTITY f "&e;&e;&e;&e;&e;&e;&e;&e;&e;&e;">
+<!ENTITY g "&f;&f;&f;&f;&f;&f;&f;&f;&f;&f;">
+]>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">&g;</Faktura>
