@@ -63,3 +63,12 @@ explicit_package_bases = true
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["src", "."]
+
+[tool.coverage.run]
+branch = false
+source = ["fa3check"]
+omit = ["*/web/szablony/*"]
+
+[tool.coverage.report]
+fail_under = 90
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
