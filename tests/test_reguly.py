@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from tests.helpers import faktura_z_fixture
 
 from fa3check.rejestr import odkryj, reguly, reset_do_testow
+from tests.helpers import faktura_z_fixture
 
 # Reguły offline zawsze informujące — nie mają sensownej pary przechodzi/lamie.
 _BEZ_ROZNICY = frozenset({"TEC-006", "TEC-007"})

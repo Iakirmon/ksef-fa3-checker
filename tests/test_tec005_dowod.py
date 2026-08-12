@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from lxml import etree
-from tests.helpers import faktura_z_fixture
 
 from fa3check.rejestr import odkryj, pobierz, reset_do_testow
+from tests.helpers import faktura_z_fixture
 
 
 def _suma_kontrolna_ok(nip: str) -> bool:
