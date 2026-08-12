@@ -45,10 +45,12 @@ przetwarzania, rozmiar) i reguły zależne od stanu systemu.
    z `typy`, `rejestr`, `faktura` i biblioteki standardowej. Nigdy z `web`, `schema`, `walidacja`,
    `safexml`.
 2. Reguła jest funkcją czystą: bez stanu, plików, sieci i zegara.
-3. `safexml.py` jest **jedynym** miejscem, które parsuje XML. `etree.XMLParser`,
-   `etree.fromstring` i `etree.parse` nie mają prawa wystąpić nigdzie indziej — domyślny parser
-   `lxml` rozwiązuje encje, więc drugie miejsce parsowania to gotowa dziura XXE. Wymusza to
-   `test_niezmienniki.py` analizą AST.
+3. **Niezaufane wejście parsuje wyłącznie `safexml.sparsuj()`.** Żaden inny moduł nie dotyka
+   bajtów pochodzących od użytkownika. **Zaufane pliki schematu z `korpus/schema/` wolno
+   parsować w `schema.py` i `struktura.py`**, ale zawsze parserem zahartowanym
+   (`resolve_entities=False`, `no_network=True`, `load_dtd=False`). Ich integralność zabezpiecza
+   SHA-256 w `PROVENANCE`. Domyślny parser `lxml` rozwiązuje encje — drugie miejsce parsowania
+   niezaufanego wejścia to gotowa dziura XXE. Wymusza to `test_niezmienniki.py` analizą AST.
 4. `safexml` odrzuca `DOCTYPE` wprost. Sprawdzone: przy `resolve_entities=False` XXE nie wycieka,
    ale dokument **przechodzi bez błędu**. Faktura KSeF nie ma powodu mieć `DOCTYPE`.
 5. Nazwy typów XSD odczytujesz z `korpus/schema/`, nigdy z pamięci. FA(3) używa `TKwotowy`

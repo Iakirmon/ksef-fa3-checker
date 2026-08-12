@@ -8,7 +8,7 @@ from typing import Any
 
 from lxml import etree
 
-from fa3check.schema import SCHEMA_DIR, SCHEMA_PLIK
+from fa3check.schema import SCHEMA_DIR, SCHEMA_PLIK, _parser_schematu
 
 XS = "{http://www.w3.org/2001/XMLSchema}"
 
@@ -59,7 +59,7 @@ def _indeks_schematu() -> tuple[dict[str, etree._Element], dict[str, etree._Elem
     typy: dict[str, etree._Element] = {}
     pliki = [SCHEMA_PLIK, *sorted((SCHEMA_DIR / "bazowe").glob("*.xsd"))]
     for plik in pliki:
-        drzewo = etree.parse(str(plik))
+        drzewo = etree.parse(str(plik), parser=_parser_schematu())
         for el in drzewo.iter(f"{XS}element"):
             nazwa = el.get("name")
             if nazwa and nazwa not in elementy:

@@ -58,10 +58,13 @@ Reguła duplikująca XSD zostanie odrzucona przy audycie.
 3. **Reguła jest funkcją czystą.** Bez stanu, bez zapisu, bez odczytu plików, bez sieci, bez
    zegara. Dostaje fasadę `Faktura`, zwraca `Iterator[Zastrzezenie]`. Reguła sięgająca po kurs
    NBP z internetu przestaje być testowalna offline i pada w najgorszym momencie.
-4. **`safexml.py` jest jedynym miejscem, które parsuje XML.** `etree.XMLParser`,
-   `etree.fromstring` i `etree.parse` nie mają prawa wystąpić nigdzie indziej. Domyślny parser
-   `lxml` rozwiązuje encje, więc drugie miejsce parsowania to gotowa dziura XXE.
-   **Wymusza to `test_niezmienniki.py` analizą AST**, nie zaufanie.
+4. **Niezaufane wejście parsuje wyłącznie `safexml.sparsuj()`.** Żaden inny moduł nie dotyka
+   bajtów pochodzących od użytkownika. **Zaufane pliki schematu z `korpus/schema/` wolno
+   parsować w `schema.py` i `struktura.py`**, ale zawsze parserem zahartowanym
+   (`resolve_entities=False`, `no_network=True`, `load_dtd=False`). Ich integralność zabezpiecza
+   SHA-256 w `PROVENANCE`. Domyślny parser `lxml` rozwiązuje encje — drugie miejsce parsowania
+   niezaufanego wejścia to gotowa dziura XXE. **Wymusza to `test_niezmienniki.py` analizą AST**,
+   nie zaufanie.
 5. **`safexml` odrzuca `DOCTYPE` wprost.** Sprawdzone: przy `resolve_entities=False` XXE nie
    wycieka, ale dokument **przechodzi bez błędu**. Faktura KSeF nie ma powodu mieć `DOCTYPE`,
    więc odrzucenie czyni XXE niemożliwym strukturalnie, a nie tylko nieszkodliwym.

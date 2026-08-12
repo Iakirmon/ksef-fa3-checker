@@ -18,10 +18,14 @@ SCHEMA_PLIK = SCHEMA_DIR / "schemat_FA(3)_v1-0E.xsd"
 XS = "{http://www.w3.org/2001/XMLSchema}"
 
 
+def _parser_schematu() -> etree.XMLParser:
+    """Zahartowany parser wyłącznie dla wendorowanych plików z korpus/schema/."""
+    return etree.XMLParser(load_dtd=False, no_network=True, resolve_entities=False)
+
+
 @lru_cache(maxsize=1)
 def wczytaj_schemat() -> etree.XMLSchema:
-    parser = etree.XMLParser(load_dtd=False, no_network=True, resolve_entities=False)
-    drzewo = etree.parse(str(SCHEMA_PLIK), parser=parser)
+    drzewo = etree.parse(str(SCHEMA_PLIK), parser=_parser_schematu())
     return etree.XMLSchema(drzewo)
 
 
@@ -37,7 +41,7 @@ def mapa_typow() -> dict[str, frozenset[str]]:
     surowa: dict[str, set[str]] = {}
     pliki = [SCHEMA_PLIK, *sorted((SCHEMA_DIR / "bazowe").glob("*.xsd"))]
     for plik in pliki:
-        drzewo = etree.parse(str(plik))
+        drzewo = etree.parse(str(plik), parser=_parser_schematu())
         for el in drzewo.iter(f"{XS}element"):
             nazwa = el.get("name")
             typ = el.get("type")

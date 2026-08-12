@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "fa3check"
 
 ZAKAZANE_IMPORTY_WPISOW = frozenset({"web", "schema", "walidacja", "safexml"})
+_NAZWY_PARSOWANIA = frozenset({"parse", "fromstring"})
 
 
 def _pliki_py(katalog: Path) -> list[Path]:
@@ -35,31 +36,46 @@ def _moduly_importowane(drzewo: ast.AST) -> set[str]:
     return wynik
 
 
-def test_lxml_parser_tylko_w_safexml() -> None:
-    """Parsowanie niezaufanego XML wyłącznie w safexml; schema/struktura wolno importować lxml."""
-    dozwolone_import = frozenset({"safexml.py", "schema.py", "struktura.py"})
-    # schema/struktura ładują lokalny XSD przez etree.parse — to nie jest wejście użytkownika
-    dozwolone_parse = frozenset({"safexml.py", "schema.py", "struktura.py"})
-    zakazane_parsowanie = {"fromstring", "XMLParser"}
-    naruszonia_import: list[str] = []
-    naruszonia_parser: list[str] = []
+def _nazwa_wywolania(func: ast.AST) -> str | None:
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def _ma_kwarg_parser(call: ast.Call) -> bool:
+    return any(kw.arg == "parser" for kw in call.keywords)
+
+
+def test_parsowanie_poza_safexml_wymaga_parsera() -> None:
+    """Poza safexml każde etree.parse/fromstring musi przekazać parser=."""
+    naruszonia: list[str] = []
     for plik in _pliki_py(SRC):
-        tekst = plik.read_text(encoding="utf-8")
-        drzewo = ast.parse(tekst, filename=str(plik))
-        mods = _moduly_importowane(drzewo)
-        if "lxml" in mods and plik.name not in dozwolone_import:
-            naruszonia_import.append(str(plik.relative_to(ROOT)))
-        if plik.name in dozwolone_parse:
+        if plik.name == "safexml.py":
             continue
+        drzewo = ast.parse(plik.read_text(encoding="utf-8"), filename=str(plik))
         for node in ast.walk(drzewo):
-            if isinstance(node, ast.Attribute) and node.attr in (*zakazane_parsowanie, "parse"):
-                naruszonia_parser.append(f"{plik.relative_to(ROOT)}:{node.lineno}:{node.attr}")
-    assert naruszonia_import == [], f"lxml poza dozwolonymi: {naruszonia_import}"
-    assert naruszonia_parser == [], f"parsowanie poza safexml: {naruszonia_parser}"
+            if not isinstance(node, ast.Call):
+                continue
+            nazwa = _nazwa_wywolania(node.func)
+            if nazwa not in _NAZWY_PARSOWANIA:
+                continue
+            if not _ma_kwarg_parser(node):
+                rel = plik.relative_to(ROOT)
+                naruszonia.append(f"{rel}:{node.lineno}:{nazwa}")
+    assert naruszonia == [], f"parsowanie bez parser=: {naruszonia}"
 
 
-def test_lxml_tylko_w_safexml() -> None:
-    test_lxml_parser_tylko_w_safexml()
+def test_lxml_tylko_w_modulach_xml() -> None:
+    """Import lxml wyłącznie w safexml, schema i struktura."""
+    dozwolone = frozenset({"safexml.py", "schema.py", "struktura.py"})
+    naruszonia: list[str] = []
+    for plik in _pliki_py(SRC):
+        drzewo = ast.parse(plik.read_text(encoding="utf-8"), filename=str(plik))
+        if "lxml" in _moduly_importowane(drzewo) and plik.name not in dozwolone:
+            naruszonia.append(str(plik.relative_to(ROOT)))
+    assert naruszonia == [], f"lxml poza dozwolonymi: {naruszonia}"
 
 
 def test_wpisy_tlumaczen_bez_komunikatu() -> None:
