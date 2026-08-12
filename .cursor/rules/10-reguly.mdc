@@ -42,8 +42,11 @@ src/fa3check/reguly/<ID>/
     └── lamie.xml             faktura, która łamie dokładnie tę jedną regułę
 ```
 
-Nazwa katalogu jest **dokładnie** identyfikatorem. Identyfikatory według poziomu: `TEC-nnn`
-(bajty i sumy kontrolne), `SEM-nnn` (zależności między polami), `ARY-nnn` (rachunki).
+Nazwa katalogu to **identyfikator zapisany małymi literami z podkreśleniami**
+(`sem_001`, `xsd_kwota_precyzja`), bo musi być poprawną nazwą modułu Pythona — inaczej
+wypada ze `mypy --strict`. Identyfikator wyświetlany (`SEM-001`) żyje w polu `id`
+dekoratora i tylko on trafia do raportu i na stronę. Prefiksy według poziomu: `tec_`,
+`sem_`, `ary_`, `xsd_`.
 
 ## Wzorzec implementacji
 
@@ -131,9 +134,10 @@ src/fa3check/tlumaczenia/<ID>/
 └── fixtures/wywoluje.xml     faktura, która wywołuje ten błąd XSD
 ```
 
-Identyfikatory **opisowe, nie po nazwie typu**: `XSD-kwota-precyzja`, `XSD-kwota-zapis`,
-`XSD-wzorzec`, `XSD-data-zakres`, `XSD-dlugosc`, `XSD-struktura`, `XSD-zapasowe`. Nazwa typu
-może się zmienić przy nowym wzorze faktury, opis problemu nie.
+Identyfikatory wyświetlane **opisowe, nie po nazwie typu**: `XSD-kwota-precyzja`,
+`XSD-wzorzec` itd. Katalog nazywa się wersją z podkreśleniami (`xsd_kwota_precyzja`),
+żeby był poprawnym modułem Pythona. Nazwa typu może się zmienić przy nowym wzorze
+faktury, opis problemu nie.
 
 ## Wzorzec
 

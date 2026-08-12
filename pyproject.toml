@@ -58,10 +58,6 @@ python_version = "3.12"
 strict = true
 mypy_path = "src"
 explicit_package_bases = true
-exclude = [
-    "^src/fa3check/tlumaczenia/.+/",
-    "^src/fa3check/reguly/.+/",
-]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
