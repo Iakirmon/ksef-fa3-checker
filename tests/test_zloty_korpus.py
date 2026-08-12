@@ -1,4 +1,4 @@
-"""Złoty korpus MF — 26/26 bez BLAD."""
+"""Złoty korpus MF — 26/26 bez żadnych zastrzeżeń (uwagi offline osobno)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import pytest
 from fa3check.rejestr import reset_do_testow
 from fa3check.safexml import sparsuj
 from fa3check.schema import mapa_typow, sprawdz, typ_jednoznaczny
-from fa3check.typy import Waga
 from fa3check.walidacja import zwaliduj
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,8 +29,10 @@ def test_zloty_korpus_plik(plik: Path) -> None:
     assert sprawdz(dok) == [], f"{plik.name}: błędy XSD"
     wynik = zwaliduj(dane)
     assert wynik.schema_ok, f"{plik.name}: schema_ok=False"
-    blady = [z for z in wynik.zastrzezenia if z.waga == Waga.BLAD]
-    assert blady == [], f"{plik.name}: BLAD {[z.wpis for z in blady]}"
+    assert wynik.zastrzezenia == (), (
+        f"{plik.name}: zastrzezenia={[z.wpis for z in wynik.zastrzezenia]}"
+    )
+    assert {z.wpis for z in wynik.uwagi_offline} == {"TEC-006", "TEC-007"}
 
 
 def test_mapa_typow_kluczowe_pola() -> None:

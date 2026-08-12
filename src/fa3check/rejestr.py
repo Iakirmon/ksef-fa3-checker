@@ -38,6 +38,7 @@ class Regula:
     dotyczy: str
     funkcja: FunkcjaReguly
     katalog: Path
+    rozstrzygalna_offline: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +82,7 @@ def rejestruj(
     waga: Waga,
     zrodlo: Zrodlo,
     dotyczy: str,
+    rozstrzygalna_offline: bool = True,
 ) -> Callable[[FunkcjaReguly], FunkcjaReguly]:
     def dekorator(fn: FunkcjaReguly) -> FunkcjaReguly:
         if id in _REGULY or id in _TLUMACZENIA:
@@ -99,6 +101,7 @@ def rejestruj(
             dotyczy=dotyczy,
             funkcja=fn,
             katalog=katalog,
+            rozstrzygalna_offline=rozstrzygalna_offline,
         )
         return fn
 

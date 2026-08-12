@@ -27,6 +27,7 @@ ZRODLO = Zrodlo(
     waga=Waga.OSTRZEZENIE,
     zrodlo=ZRODLO,
     dotyczy="//tns:P_1",
+    rozstrzygalna_offline=False,
 )
 def data_wystawienia_vs_przyjecia(f: Faktura) -> Iterator[Zastrzezenie]:
     """Bez daty przyjęcia z KSeF reguła nie orzeka — tylko ostrzega."""

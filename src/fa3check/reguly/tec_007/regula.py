@@ -27,6 +27,7 @@ ZRODLO = Zrodlo(
     waga=Waga.INFORMACJA,
     zrodlo=ZRODLO,
     dotyczy="//tns:Fa/tns:P_2",
+    rozstrzygalna_offline=False,
 )
 def unikalnosc_faktury(f: Faktura) -> Iterator[Zastrzezenie]:
     nip = f.tekst("//tns:Podmiot1//tns:NIP")

@@ -110,3 +110,18 @@ blockquote {
 .waga-blad { color: var(--blad); }
 .waga-ostrzezenie { color: var(--ostrz); }
 .waga-informacja { color: var(--info); }
+.panel-offline {
+  margin: 1.25rem 0 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px dashed var(--ramka);
+  background: #f3efe8;
+}
+.panel-offline > summary {
+  font-weight: 600;
+  color: #5a554c;
+}
+.panel-offline-opis {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.95rem;
+  color: #5a554c;
+}

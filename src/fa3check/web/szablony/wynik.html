@@ -32,5 +32,37 @@
     {% endfor %}
   </ul>
   {% endfor %}
+  {% if wynik.uwagi_offline %}
+  <details class="panel-offline">
+    <summary>Czego nie sprawdzamy offline ({{ wynik.uwagi_offline|length }})</summary>
+    <p class="panel-offline-opis">
+      Te wymagania zależą od stanu KSeF albo daty przyjęcia dokumentu — z jednego pliku
+      nie da się ich rozstrzygnąć.
+    </p>
+    <ul class="lista-zastrzezen">
+      {% for z in wynik.uwagi_offline %}
+      <li>
+        <details>
+          <summary>
+            <span class="id">{{ z.wpis }}</span>
+            <span class="skrot">{{ z.co }}</span>
+          </summary>
+          <dl>
+            <dt>Co</dt><dd>{{ z.co }}</dd>
+            <dt>Dlaczego</dt><dd>{{ z.dlaczego }}</dd>
+            <dt>Jak naprawić</dt><dd>{{ z.jak_naprawic }}</dd>
+            <dt>Źródło</dt>
+            <dd>
+              {{ z.zrodlo.dokument }}
+              {% if z.zrodlo.strona %}(s. {{ z.zrodlo.strona }}){% endif %}
+              — „{{ z.zrodlo.cytat }}”
+            </dd>
+          </dl>
+        </details>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   <p class="meta">Czas: {{ wynik.czas_ms }} ms · zastrzeżeń: {{ wynik.zastrzezenia|length }}</p>
 </section>

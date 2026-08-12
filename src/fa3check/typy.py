@@ -67,6 +67,7 @@ class Wynik:
     schema_ok: bool
     czesciowy: bool
     czas_ms: int
+    uwagi_offline: tuple[Zastrzezenie, ...] = ()
 
 
 class Fa3Error(Exception):

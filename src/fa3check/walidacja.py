@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from collections.abc import Iterator
 from dataclasses import replace
 
 from fa3check.faktura import NS, Faktura
@@ -152,32 +151,40 @@ def _rodzic_bledu(dok: Dokument, xpath: str) -> object | None:
 def _uruchom_reguly(
     faktura: Faktura,
     poziomy: set[Poziom],
-) -> Iterator[Zastrzezenie]:
+) -> tuple[list[Zastrzezenie], list[Zastrzezenie]]:
+    online: list[Zastrzezenie] = []
+    offline: list[Zastrzezenie] = []
     for regula in reguly():
         if regula.poziom not in poziomy:
             continue
         try:
-            yield from regula.funkcja(faktura)
+            wynik_reguly = list(regula.funkcja(faktura))
         except Exception as exc:
             if RYGOR_REGUL:
                 raise
-            yield Zastrzezenie(
-                wpis=regula.id,
-                waga=Waga.INFORMACJA,
-                poziom=regula.poziom,
-                xpath=regula.dotyczy,
-                linia=None,
-                co=f"Reguła {regula.id} nie mogła się wykonać.",
-                dlaczego=(
-                    "Awaria pojedynczej reguły nie powinna ukrywać pozostałych wyników walidacji."
-                ),
-                jak_naprawic=(
-                    "Zgłoś problem autorowi walidatora; wynik pozostałych reguł "
-                    "jest nadal miarodajny."
-                ),
-                zrodlo=regula.zrodlo,
-                diagnostyka=type(exc).__name__,
-            )
+            wynik_reguly = [
+                Zastrzezenie(
+                    wpis=regula.id,
+                    waga=Waga.INFORMACJA,
+                    poziom=regula.poziom,
+                    xpath=regula.dotyczy,
+                    linia=None,
+                    co=f"Reguła {regula.id} nie mogła się wykonać.",
+                    dlaczego=(
+                        "Awaria pojedynczej reguły nie powinna ukrywać pozostałych "
+                        "wyników walidacji."
+                    ),
+                    jak_naprawic=(
+                        "Zgłoś problem autorowi walidatora; wynik pozostałych reguł "
+                        "jest nadal miarodajny."
+                    ),
+                    zrodlo=regula.zrodlo,
+                    diagnostyka=type(exc).__name__,
+                )
+            ]
+        cel = online if regula.rozstrzygalna_offline else offline
+        cel.extend(wynik_reguly)
+    return online, offline
 
 
 def _korzen_ok(dok: Dokument) -> bool:
@@ -225,6 +232,7 @@ def zwaliduj(dane: bytes) -> Wynik:
     except Fa3Error as exc:
         return Wynik(
             zastrzezenia=_sortuj([_zastrzezenie_parsowania(exc)]),
+            uwagi_offline=(),
             schema_ok=False,
             czesciowy=False,
             czas_ms=int((time.perf_counter() - t0) * 1000),
@@ -233,6 +241,7 @@ def zwaliduj(dane: bytes) -> Wynik:
     if not _korzen_ok(dok):
         return Wynik(
             zastrzezenia=_sortuj([_zastrzezenie_korzenia(dok)]),
+            uwagi_offline=(),
             schema_ok=False,
             czesciowy=False,
             czas_ms=int((time.perf_counter() - t0) * 1000),
@@ -240,7 +249,10 @@ def zwaliduj(dane: bytes) -> Wynik:
 
     faktura = Faktura.z_dokumentu(dok)
     zastrzezenia: list[Zastrzezenie] = []
-    zastrzezenia.extend(_uruchom_reguly(faktura, {Poziom.TECHNICZNA}))
+    uwagi_offline: list[Zastrzezenie] = []
+    online_tec, offline_tec = _uruchom_reguly(faktura, {Poziom.TECHNICZNA})
+    zastrzezenia.extend(online_tec)
+    uwagi_offline.extend(offline_tec)
 
     bledy = sprawdz(dok)
     schema_ok = not bledy
@@ -251,10 +263,15 @@ def zwaliduj(dane: bytes) -> Wynik:
     zastrzezenia.extend(_odszum_duplikaty_schematu(pary_schematu))
 
     # Semantyka i arytmetyka zawsze — także przy błędach schematu.
-    zastrzezenia.extend(_uruchom_reguly(faktura, {Poziom.SEMANTYCZNA, Poziom.ARYTMETYCZNA}))
+    online_reszta, offline_reszta = _uruchom_reguly(
+        faktura, {Poziom.SEMANTYCZNA, Poziom.ARYTMETYCZNA}
+    )
+    zastrzezenia.extend(online_reszta)
+    uwagi_offline.extend(offline_reszta)
 
     return Wynik(
         zastrzezenia=_sortuj(zastrzezenia),
+        uwagi_offline=_sortuj(uwagi_offline),
         schema_ok=schema_ok,
         czesciowy=not schema_ok,
         czas_ms=int((time.perf_counter() - t0) * 1000),
