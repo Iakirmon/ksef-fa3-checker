@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import time
+from collections import defaultdict
 from collections.abc import Iterator
+from dataclasses import replace
 
 from fa3check.faktura import NS, Faktura
 from fa3check.rejestr import reguly
@@ -11,6 +13,7 @@ from fa3check.safexml import Dokument, sparsuj
 from fa3check.schema import sprawdz
 from fa3check.tlumaczenia import na_zastrzezenie
 from fa3check.typy import (
+    BladSchematu,
     Fa3Error,
     LimitPrzekroczony,
     Poziom,
@@ -20,6 +23,15 @@ from fa3check.typy import (
     XmlNiepoprawny,
     Zastrzezenie,
     Zrodlo,
+)
+
+# Im niższy indeks, tym bardziej szczegółowy kod błędu schematu.
+_KOLEJNOSC_SZCZEGOLOWOSCI: tuple[str, ...] = (
+    "SCHEMAV_CVC_FRACTIONDIGITS_VALID",
+    "SCHEMAV_CVC_MAXLENGTH_VALID",
+    "SCHEMAV_CVC_MININCLUSIVE_VALID",
+    "SCHEMAV_CVC_PATTERN_VALID",
+    "SCHEMAV_CVC_DATATYPE_VALID_1_2_1",
 )
 
 NS_FA3 = NS["tns"]
@@ -60,6 +72,36 @@ def _sortuj(zastrzezenia: list[Zastrzezenie]) -> tuple[Zastrzezenie, ...]:
             key=lambda z: (_kolejnosc_wagi(z.waga), z.linia or 0, z.wpis),
         )
     )
+
+
+def _ranga_szczegolowosci(typ_lxml: str) -> int:
+    try:
+        return _KOLEJNOSC_SZCZEGOLOWOSCI.index(typ_lxml)
+    except ValueError:
+        return len(_KOLEJNOSC_SZCZEGOLOWOSCI)
+
+
+def _odszum_duplikaty_schematu(
+    pary: list[tuple[BladSchematu, Zastrzezenie]],
+) -> list[Zastrzezenie]:
+    """Zostaw jedno zastrzeżenie na (xpath, linia) — najbardziej szczegółowy kod."""
+    grupy: dict[tuple[str, int | None], list[tuple[BladSchematu, Zastrzezenie]]] = defaultdict(list)
+    for blad, zastrzezenie in pary:
+        grupy[(zastrzezenie.xpath, zastrzezenie.linia)].append((blad, zastrzezenie))
+
+    wynik: list[Zastrzezenie] = []
+    for grupa in grupy.values():
+        if len(grupa) == 1:
+            wynik.append(grupa[0][1])
+            continue
+        grupa_posortowana = sorted(grupa, key=lambda p: _ranga_szczegolowosci(p[0].typ_lxml))
+        zwyciezca = grupa_posortowana[0][1]
+        odrzucone = [z.wpis for _, z in grupa_posortowana[1:]]
+        diagnostyka = zwyciezca.diagnostyka or ""
+        dopisek = "odszumione:" + ",".join(odrzucone)
+        diagnostyka = f"{diagnostyka}; {dopisek}" if diagnostyka else dopisek
+        wynik.append(replace(zwyciezca, diagnostyka=diagnostyka))
+    return wynik
 
 
 def _qname(tag: str) -> tuple[str | None, str]:
@@ -202,9 +244,11 @@ def zwaliduj(dane: bytes) -> Wynik:
 
     bledy = sprawdz(dok)
     schema_ok = not bledy
+    pary_schematu: list[tuple[BladSchematu, Zastrzezenie]] = []
     for blad in bledy:
         rodzic = _rodzic_bledu(dok, blad.xpath)
-        zastrzezenia.append(na_zastrzezenie(blad, rodzic=rodzic))
+        pary_schematu.append((blad, na_zastrzezenie(blad, rodzic=rodzic)))
+    zastrzezenia.extend(_odszum_duplikaty_schematu(pary_schematu))
 
     # Semantyka i arytmetyka zawsze — także przy błędach schematu.
     zastrzezenia.extend(_uruchom_reguly(faktura, {Poziom.SEMANTYCZNA, Poziom.ARYTMETYCZNA}))

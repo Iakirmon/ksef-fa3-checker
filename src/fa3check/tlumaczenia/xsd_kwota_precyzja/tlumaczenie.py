@@ -20,7 +20,11 @@ _LIMITY = {"TKwotowy": 2, "TIlosci": 6, "TKwotowy2": 8}
 
 @tlumacz(
     id="XSD-kwota-precyzja",
-    klucz=KluczBledu(typ_lxml="SCHEMAV_CVC_FRACTIONDIGITS_VALID"),
+    klucze=(
+        KluczBledu(typ_lxml="SCHEMAV_CVC_FRACTIONDIGITS_VALID", typ_xsd="TKwotowy"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_FRACTIONDIGITS_VALID", typ_xsd="TKwotowy2"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_FRACTIONDIGITS_VALID", typ_xsd="TIlosci"),
+    ),
     zrodlo=ZRODLO,
 )
 class TlumaczeniePrecyzjaKwoty:

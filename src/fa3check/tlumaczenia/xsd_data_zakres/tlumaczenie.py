@@ -16,8 +16,8 @@ ZRODLO = Zrodlo(
 @tlumacz(
     id="XSD-data-zakres",
     klucze=(
-        KluczBledu(typ_lxml="SCHEMAV_CVC_MININCLUSIVE_VALID"),
-        KluczBledu(typ_lxml="SCHEMAV_CVC_MAXINCLUSIVE_VALID"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_MININCLUSIVE_VALID", typ_xsd="TDataT"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_MAXINCLUSIVE_VALID", typ_xsd="TDataT"),
     ),
     zrodlo=ZRODLO,
 )

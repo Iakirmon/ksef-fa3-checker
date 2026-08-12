@@ -21,7 +21,14 @@ ZRODLO = Zrodlo(
 
 @tlumacz(
     id="XSD-kwota-zapis",
-    klucz=KluczBledu(typ_lxml="SCHEMAV_CVC_DATATYPE_VALID_1_2_1"),
+    klucze=(
+        KluczBledu(typ_lxml="SCHEMAV_CVC_DATATYPE_VALID_1_2_1", typ_xsd="TKwotowy"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_DATATYPE_VALID_1_2_1", typ_xsd="TKwotowy2"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_DATATYPE_VALID_1_2_1", typ_xsd="TIlosci"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID", typ_xsd="TKwotowy"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID", typ_xsd="TKwotowy2"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID", typ_xsd="TIlosci"),
+    ),
     zrodlo=ZRODLO,
 )
 class TlumaczenieZapisKwoty:

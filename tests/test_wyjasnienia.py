@@ -6,7 +6,8 @@ import re
 
 import pytest
 
-from fa3check.rejestr import odkryj, reguly, reset_do_testow
+from fa3check.rejestr import odkryj, reguly, reset_do_testow, tlumaczenia
+from fa3check.typy import BladSchematu
 from tests.helpers import faktura_z_fixture
 
 ZWROTY_ZAKAZANE = [
@@ -38,6 +39,9 @@ ZARGON = [
     "libxml",
     "lxml",
 ]
+
+# Słowa zakładające rodzinę pól — tłumaczenie z nimi musi mieć typ_xsd na każdym kluczu.
+SLOWA_RODZIN = ("liczb", "kwot", "separator", "identyfikator", "data", "NIP")
 
 
 def setup_function() -> None:
@@ -80,3 +84,29 @@ def test_wyjasnienia_lamie(regula_id: str) -> None:
             for zargon in ZARGON:
                 assert zargon.lower() not in low, f"{regula_id}: żargon '{zargon}'"
         assert _pola_fa3(z.co), f"{regula_id}: 'co' bez liczby/nazwy pola"
+
+
+def test_tlumaczenie_rodziny_wymaga_typ_xsd() -> None:
+    """Treść zakładająca rodzinę pól → każdy klucz musi mieć typ_xsd."""
+    reset_do_testow()
+    odkryj()
+    blad = BladSchematu(
+        typ_lxml="SCHEMAV_CVC_PATTERN_VALID",
+        element="PoleX",
+        typ_xsd="TypX",
+        xpath="/*",
+        linia=1,
+        wartosc="x",
+        komunikat="",
+    )
+    for tlum in tlumaczenia():
+        if tlum.id == "XSD-zapasowe":
+            continue
+        inst = tlum.klasa()
+        tresc = " ".join([inst.co(blad), inst.dlaczego(blad), inst.jak_naprawic(blad)])
+        if not any(s in tresc if s == "NIP" else s.lower() in tresc.lower() for s in SLOWA_RODZIN):
+            continue
+        for klucz in tlum.klucze or (tlum.klucz,):
+            assert klucz.typ_xsd, (
+                f"{tlum.id}: treść zakłada rodzinę pól, a klucz bez typ_xsd: {klucz}"
+            )

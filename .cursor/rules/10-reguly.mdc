@@ -170,6 +170,10 @@ class TlumaczenieZakresDaty:
 Tłumaczenia **nie mają pola `waga`** — naruszenie schematu zawsze oznacza odrzucenie przez KSeF,
 więc byłoby to pole o jednej możliwej wartości.
 
+**Tłumaczenie, którego treść zakłada rodzinę pól, musi być zawężone przez `typ_xsd`.**
+Jeden wpis = jedno `Zrodlo` = jedna rodzina pól. Klucz po samym `typ_lxml` jest dozwolony
+wyłącznie dla wpisu ogólnego, którego treść nie zakłada niczego o rodzaju pola.
+
 ## Zasady bezwzględne
 
 1. **Dopasowanie NIGDY po treści komunikatu.** Wyłącznie po `KluczBledu`: `typ_lxml`

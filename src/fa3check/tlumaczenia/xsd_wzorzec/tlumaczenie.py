@@ -20,7 +20,11 @@ ZRODLO = Zrodlo(
 
 @tlumacz(
     id="XSD-wzorzec",
-    klucz=KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID"),
+    klucze=(
+        KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID", typ_xsd="TNrNIP"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID", typ_xsd="TNIPIdWew"),
+        KluczBledu(typ_lxml="SCHEMAV_CVC_PATTERN_VALID", typ_xsd="TNrVatUE"),
+    ),
     zrodlo=ZRODLO,
 )
 class TlumaczenieWzorzec:
@@ -31,8 +35,9 @@ class TlumaczenieWzorzec:
                 "lub spacjami, a wymagany jest ciąg 10 cyfr bez znaków rozdzielających."
             )
         return (
-            f"Wartość „{blad.wartosc or '?'}” w polu {blad.element or '?'} nie pasuje do "
-            "wymaganego wzorca zapisu."
+            f"W polu {blad.element or 'identyfikatora podatkowego'} wartość "
+            f"„{blad.wartosc or '?'}” nie jest poprawnym numerem identyfikacji podatkowej "
+            "— wymagany jest ciąg cyfr lub liter bez spacji i znaków rozdzielających."
         )
 
     def dlaczego(self, blad: BladSchematu) -> str:
@@ -48,6 +53,6 @@ class TlumaczenieWzorzec:
                 "(np. 5261040828) i kod kraju przenieś do osobnego pola, jeśli dotyczy."
             )
         return (
-            f"Popraw zapis w polu {blad.element or 'wskazanym'} zgodnie z broszurą FA(3) "
-            "— bez spacji i zbędnych znaków rozdzielających."
+            f"W polu {blad.element or 'identyfikatora podatkowego'} zostaw ciąg cyfr lub liter "
+            "bez spacji i znaków rozdzielających; kod kraju przenieś do osobnego pola."
         )
